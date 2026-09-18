@@ -48,55 +48,84 @@ window.INSTRUCTOR_CODE_HASH = "6795969541072117";
 </script>
 
 <style>
-/* ===================== FRIENDLY POKER — casino dark theme ================= */
+/* ============ WSOP POKER DEMO — late-night premium poker room ============= */
 :root{
-  --bg:#16171b; --bg2:#1b1c22;
-  --panel:#232428; --panel2:#2b2d31; --panel3:#35373d;
-  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.14);
-  --felt-1:#1e6b51; --felt-2:#124834; --felt-3:#0b3123; --felt-rail:#241546;
-  --ink:#f2f3f5; --muted:#b7bcc4; --faint:#82868f;
-  --gold:#5865f2; --gold-2:#98a0ff; --gold-deep:#4752c4;
-  --cream:#f6f0e2; --cream-line:#e6dcc4;
-  --red:#ec5a5a; --blk:#1c1d22;
-  --good:#23a55a; --warn:#e6a838; --danger:#f0576f;
+  --bg:#0d0f14; --bg2:#141821;
+  --panel:#171b22; --panel2:#1f242e; --panel3:#2a3039;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.16);
+  --felt-1:#2f9068; --felt-2:#15633f; --felt-3:#083826;
+  --rail-1:#3a3126; --rail-2:#1a1712; --rail-hi:rgba(240,200,105,.30);
+  --ink:#f4f6f9; --muted:#a9b2bf; --faint:#6f7886;
+  /* money & primary = warm gold; brand accents = blurple (matches the logo) */
+  --gold:#e8be63; --gold-2:#ffe1a1; --gold-deep:#a97c24;
+  --brand:#6b78ff; --brand-2:#a6aeff; --brand-deep:#454fbe;
+  --cream:#f8f4e9; --cream-line:#ddd2ba;
+  --red:#e04a50; --blk:#1a1c22;
+  /* ---- look & feel defaults (a player's own picks override these below) ---- */
+  --rail-col:#2c2519;
+  --face-bg:linear-gradient(160deg,#fffdf7,#f8f4e9 45%,#efe7d5);
+  --face-edge:#ddd2ba; --face-red:#e04a50; --face-blk:#1a1c22;
+  --face-shadow:0 4px 9px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.6);
+  --back-bg:repeating-linear-gradient(45deg,#27201a 0 6px,#3a3026 6px 12px),linear-gradient(180deg,#3a3026,#27201a);
+  --back-edge:rgba(232,190,99,.42); --back-inset:rgba(232,190,99,.28);
+  --back-glyph:rgba(232,190,99,.65); --back-sym:"\25C6";
+  --bd:linear-gradient(180deg,#56381f,#22160f); --bd-blur:13px; --bd-bright:.66; --bd-sat:1.15;
+  --vig:radial-gradient(120% 90% at 50% 45%, transparent 35%, rgba(0,0,0,.55) 100%);
+  --cab:radial-gradient(900px 460px at 50% -12%, rgba(107,120,255,.15), transparent 62%),
+        linear-gradient(180deg,#131822 0%,#0b0e14 100%);
+  --good:#3ddc84; --warn:#ffb84d; --danger:#ff5a5a;
   --accent:#eb459e;
-  --r:14px; --r-sm:9px;
-  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --r:16px; --r-sm:11px;
+  --shadow:0 12px 34px rgba(0,0,0,.5);
   --card-w:clamp(38px,11vw,52px); --card-h:calc(var(--card-w)*1.4);
   --mini-w:clamp(26px,7.5vw,34px); --mini-h:calc(var(--mini-w)*1.4);
+  --board-w:clamp(31px,8.6vw,44px); --board-h:calc(var(--board-w)*1.4);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; background:
-    radial-gradient(1200px 640px at 50% -8%, #2b2358 0%, #1c1d2a 44%, var(--bg) 100%);
+  margin:0;
+  background:
+    radial-gradient(900px 480px at 50% -10%, rgba(107,120,255,.16), transparent 60%),
+    radial-gradient(700px 500px at 50% 108%, rgba(232,190,99,.07), transparent 62%),
+    linear-gradient(180deg,#12161e 0%, var(--bg) 55%, #0a0c10 100%);
+  background-attachment:fixed;
   color:var(--ink);
   font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  font-size:15px; line-height:1.4;
+  font-size:15px; line-height:1.45;
   -webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;
 }
+/* themed backdrop — one blurred layer + a vignette, both driven by the background theme */
+body::before{content:"";position:fixed;inset:-60px;z-index:0;pointer-events:none;
+  background:var(--bd);background-size:cover;background-position:center;
+  filter:blur(var(--bd-blur)) saturate(var(--bd-sat)) brightness(var(--bd-bright))}
+body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--vig)}
+.screen{position:relative;z-index:1}
 h1,h2,h3,.brand,.disp{font-family:"Oswald","Inter",system-ui,sans-serif;font-weight:600;letter-spacing:.5px}
 button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 input{font-family:inherit}
-.tnum{font-variant-numeric:tabular-nums}
+.tnum,.pod-stack,.pot-amt,.betchip,.ctl-secs,.pod-secs{font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
+::selection{background:rgba(232,190,99,.3)}
 
 /* ---------- generic screens layout ---------- */
 .screen{min-height:100%;display:flex;flex-direction:column}
 .wrap{width:100%;max-width:460px;margin:0 auto;padding-inline:18px;padding-block:24px}
 
 /* ---------- brand ---------- */
-.brand-lockup{display:flex;flex-direction:column;align-items:center;gap:6px;margin:14px 0 26px}
-.logo-mark{width:clamp(104px,32vw,140px);height:auto;display:block;margin:0 auto 4px;
-  filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(88,101,242,.38))}
+.brand-lockup{display:flex;flex-direction:column;align-items:center;gap:6px;margin:16px 0 28px}
+.logo-mark{width:clamp(104px,32vw,140px);height:auto;display:block;margin:0 auto 6px;
+  filter:drop-shadow(0 10px 22px rgba(0,0,0,.6)) drop-shadow(0 0 18px rgba(232,190,99,.22))}
 .suit-row{display:flex;gap:6px;font-size:22px;line-height:1}
 .suit-row .s{color:var(--ink)} .suit-row .r{color:var(--red)}
-.brand{font-size:clamp(34px,10vw,46px);line-height:1;color:var(--gold-2);text-shadow:0 2px 0 rgba(0,0,0,.4);letter-spacing:2px;text-align:center;text-wrap:balance}
+.brand{font-size:clamp(34px,10vw,46px);line-height:1;color:var(--gold-2);letter-spacing:2.5px;text-align:center;text-wrap:balance;
+  text-shadow:0 2px 12px rgba(232,190,99,.25),0 2px 0 rgba(0,0,0,.5)}
 .brand .thin{color:var(--ink);font-weight:300}
-.demo-tag{display:inline-block;font-size:.3em;vertical-align:middle;background:var(--accent);color:#fff;border-radius:6px;padding:3px 8px;letter-spacing:2px;font-family:"Inter",sans-serif;font-weight:800;position:relative;top:-.4em;margin-left:6px;box-shadow:0 3px 12px rgba(235,69,158,.4)}
-.tagline{color:var(--muted);font-size:13px;text-align:center;letter-spacing:.3px}
-.chip-accent{width:54px;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--gold-deep),var(--gold-2),var(--gold-deep));margin:2px auto 0}
+.demo-tag{display:inline-block;font-size:.3em;vertical-align:middle;background:linear-gradient(180deg,#f75fae,var(--accent));color:#fff;border-radius:7px;padding:3px 9px;letter-spacing:2px;font-family:"Inter",sans-serif;font-weight:800;position:relative;top:-.4em;margin-left:8px;box-shadow:0 4px 14px rgba(235,69,158,.45)}
+.tagline{color:var(--muted);font-size:13.5px;text-align:center;letter-spacing:.3px}
+.chip-accent{width:58px;height:5px;border-radius:6px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:4px auto 0;opacity:.9}
 
 /* ---------- cards & fields ---------- */
 .panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
@@ -104,232 +133,448 @@ input{font-family:inherit}
 .field label{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
 .field .hint{font-size:12px;color:var(--faint)}
 input[type=text],input[type=number],textarea,.inp{
-  width:100%;background:#0c1116;border:1px solid var(--line2);color:var(--ink);
-  border-radius:var(--r-sm);padding:13px 14px;font-size:16px;outline:none;transition:border-color .15s,box-shadow .15s
+  width:100%;background:rgba(0,0,0,.4);border:1px solid var(--line2);color:var(--ink);
+  border-radius:var(--r-sm);padding:14px 15px;font-size:16px;outline:none;transition:border-color .16s,box-shadow .16s,background .16s
 }
-input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(215,180,92,.18)}
+input::placeholder{color:var(--faint)}
+input:focus,textarea:focus{border-color:var(--gold);background:rgba(0,0,0,.55);box-shadow:0 0 0 3px rgba(232,190,99,.16)}
 input.shake{animation:shake .4s}
 @keyframes shake{10%,90%{transform:translateX(-1px)}30%,70%{transform:translateX(3px)}50%{transform:translateX(-4px)}}
 .row2{display:flex;gap:12px}.row2>*{flex:1}
 
 /* ---------- buttons ---------- */
-.gold,.btn.raise{background:linear-gradient(180deg,var(--gold-2),var(--gold));color:#20180a;font-weight:700;border-radius:var(--r-sm);padding:14px 16px;font-size:16px;letter-spacing:.3px;box-shadow:0 4px 14px rgba(215,180,92,.25);transition:transform .08s,filter .15s}
-.gold:active,.btn:active{transform:translateY(1px)}
-.gold.big{width:100%;font-size:17px;padding:16px}
-.gold.sm{padding:9px 13px;font-size:13px}
-.gold:disabled{filter:grayscale(.6) brightness(.7);cursor:default}
-.ghost{background:rgba(255,255,255,.05);border:1px solid var(--line2);color:var(--ink);border-radius:var(--r-sm);padding:12px 15px;font-size:15px;transition:background .15s}
-.ghost:hover{background:rgba(255,255,255,.1)}
-.ghost.sm{padding:8px 12px;font-size:13px}
+.gold{background:linear-gradient(180deg,var(--gold-2),var(--gold) 55%,#d6a944);color:#2a1e05;font-weight:800;border-radius:var(--r-sm);
+  padding:15px 17px;font-size:16px;letter-spacing:.3px;
+  box-shadow:0 6px 18px rgba(232,190,99,.26),inset 0 1px 0 rgba(255,255,255,.55);
+  transition:transform .09s,filter .16s,box-shadow .16s}
+.gold:hover{filter:brightness(1.05)}
+.gold:active,.btn:active,.ghost:active{transform:translateY(1px)}
+.gold.big{width:100%;font-size:17.5px;padding:17px}
+.gold.sm{padding:9px 14px;font-size:13px;border-radius:9px}
+.gold:disabled{filter:grayscale(.65) brightness(.65);cursor:default;box-shadow:none}
+.ghost{background:rgba(255,255,255,.055);border:1px solid var(--line2);color:var(--ink);border-radius:var(--r-sm);
+  padding:12px 15px;font-size:15px;transition:background .16s,border-color .16s,transform .09s}
+.ghost:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.26)}
+.ghost.sm{padding:9px 13px;font-size:13px;border-radius:9px}
 .linkbtn{background:none;border:none;color:var(--gold-2);text-decoration:underline;padding:0;font-size:inherit}
-.msg{background:rgba(224,87,79,.12);border:1px solid rgba(224,87,79,.4);color:#ffbdb8;border-radius:var(--r-sm);padding:10px 13px;font-size:13px;margin-top:6px}
-.divider{display:flex;align-items:center;gap:12px;color:var(--faint);font-size:12px;letter-spacing:1px;margin:18px 0}
-.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.msg{background:rgba(224,74,80,.13);border:1px solid rgba(224,74,80,.42);color:#ffc2c0;border-radius:var(--r-sm);padding:11px 14px;font-size:13px;margin-top:6px}
+.divider{display:flex;align-items:center;gap:12px;color:var(--faint);font-size:12px;letter-spacing:1.4px;margin:20px 0}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent)}
 
 /* ---------- fake-money banner ---------- */
-.fake-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,108,255,.14);border:1px solid rgba(124,108,255,.35);color:#c9c1ff;border-radius:999px;padding:5px 12px;font-size:12px;letter-spacing:.4px;margin:0 auto 8px}
+.fake-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(107,120,255,.13);border:1px solid rgba(107,120,255,.35);
+  color:#c3c9ff;border-radius:999px;padding:6px 14px;font-size:12.5px;letter-spacing:.3px;margin:0 auto 10px}
 
 /* ======================= TABLE ======================= */
-#screen-table{min-height:100%;display:flex;flex-direction:column;background:
-  radial-gradient(900px 520px at 50% 6%, #241f47, var(--bg) 68%)}
+#screen-table{position:relative;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.tbar,.teach-banner,.me-panel,.controls,.drawer{flex:none}
 .tbar-spacer{width:70px;flex:none}
 .tbar{display:flex;align-items:center;gap:8px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top,0px));
-  background:linear-gradient(180deg,rgba(0,0,0,.35),transparent);position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)}
-.tbar .ghost{padding:8px 12px;font-size:14px}
-.tbar-mid{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
-#tbl-name{font-family:"Oswald",sans-serif;font-size:15px;letter-spacing:.5px;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.code-chip{display:inline-flex;gap:7px;align-items:center;background:rgba(215,180,92,.12);border:1px solid rgba(215,180,92,.4);color:var(--gold-2);border-radius:999px;padding:3px 11px;font-size:13px;letter-spacing:2px;font-weight:700}
-.code-chip .cp{font-size:10px;letter-spacing:.5px;color:var(--muted);font-weight:400}
+  background:linear-gradient(180deg,rgba(8,10,14,.85),rgba(8,10,14,0));position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
+.tbar .ghost{padding:9px 13px;font-size:14px}
+.tbar-mid{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+#tbl-name{font-family:"Oswald",sans-serif;font-size:15.5px;letter-spacing:.6px;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.code-chip{display:inline-flex;gap:8px;align-items:center;background:rgba(232,190,99,.1);border:1px solid rgba(232,190,99,.38);
+  color:var(--gold-2);border-radius:999px;padding:4px 12px;font-size:13px;letter-spacing:2.5px;font-weight:700;transition:background .16s}
+.code-chip:hover{background:rgba(232,190,99,.18)}
+.code-chip .cp{font-size:10px;letter-spacing:.4px;color:var(--muted);font-weight:500}
 .teach-btn{font-size:17px;padding:8px 11px}
-.teach-btn.on{background:rgba(124,108,255,.25);border-color:var(--accent)}
-.teach-banner{background:linear-gradient(90deg,rgba(124,108,255,.22),rgba(124,108,255,.08));border-bottom:1px solid rgba(124,108,255,.4);color:#d7d1ff;font-size:12.5px;text-align:center;padding:7px 12px}
+.teach-btn.on{background:rgba(107,120,255,.25);border-color:var(--accent)}
+.teach-banner{background:linear-gradient(90deg,rgba(107,120,255,.24),rgba(107,120,255,.08));border-bottom:1px solid rgba(107,120,255,.38);
+  color:#d3d7ff;font-size:12.5px;text-align:center;padding:8px 12px;letter-spacing:.3px}
+
+.sidecol{display:contents}
 
 /* ---------- felt: a WSOP-style oval table ---------- */
-.felt{position:relative;margin:8px 6px 4px}
-.table-oval{position:relative;width:100%;height:min(62vh,540px);min-height:404px;
+.felt{position:relative;margin:6px 6px 2px;flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
+.table-oval{position:relative;height:100%;width:100%;max-width:100%;aspect-ratio:1.42;margin:0 auto;min-height:0;
   border-radius:46% / 30%;
-  background:radial-gradient(120% 82% at 50% 34%, var(--felt-1), var(--felt-2) 58%, var(--felt-3) 100%);
-  box-shadow:inset 0 0 70px rgba(0,0,0,.62), 0 0 40px rgba(88,101,242,.16), var(--shadow)}
+  background:
+    radial-gradient(60% 42% at 50% 30%, rgba(255,255,255,.10), transparent 70%),
+    radial-gradient(120% 82% at 50% 34%, var(--felt-1), var(--felt-2) 56%, var(--felt-3) 100%);
+  box-shadow:
+    inset 0 0 90px rgba(0,0,0,.6),
+    inset 0 6px 26px rgba(0,0,0,.34),
+    0 26px 60px rgba(0,0,0,.55)}
 .rail{position:absolute;inset:0;border-radius:46% / 30%;pointer-events:none;
-  border:10px solid #241546;
-  box-shadow:inset 0 0 0 2px rgba(140,150,255,.35), inset 0 0 26px rgba(0,0,0,.5)}
+  border:12px solid var(--rail-col);
+  box-shadow:
+    inset 0 0 0 1px var(--rail-hi),
+    inset 0 2px 7px rgba(255,255,255,.10),
+    inset 0 -4px 12px rgba(0,0,0,.55),
+    0 0 0 1px rgba(0,0,0,.7),
+    0 20px 44px rgba(0,0,0,.5)}
 .seats-layer,.bets-layer{position:absolute;inset:0;pointer-events:none}
 
 /* a player pod (avatar + cards + name/stack) positioned around the oval */
-.pod{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;width:82px;
-  transition:opacity .2s;pointer-events:auto}
-.pod.folded{opacity:.4}
+.pod{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;width:82px;
+  transition:opacity .25s;pointer-events:auto}
+.pod.folded{opacity:.72}   /* mucked cards stay readable on the table */
 .pod.out{opacity:.5;filter:saturate(.35)}
 .pod-cards{display:flex;gap:3px;justify-content:center}
-.pod.me .pod-cards{margin-bottom:2px}
+.pod.me .pod-cards{margin-bottom:3px}
 .pod-av{position:relative;width:52px;height:52px}
 /* opponent cards peek from behind the avatar */
 .pod:not(.me) .pod-av .pod-cards{position:absolute;left:50%;top:-19px;transform:translateX(-50%);gap:2px;z-index:0}
 .avatar{position:relative;z-index:2;width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.14);border:2px solid rgba(0,0,0,.25)}
-.av-emo{font-size:26px;line-height:1}
-.avatar.bot{box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 0 2px rgba(140,150,255,.4)}
-.pod.me .avatar{box-shadow:0 3px 12px rgba(0,0,0,.55), inset 0 0 0 2px rgba(152,160,255,.7)}
-.pod.active .avatar{animation:podglow 1.1s ease-in-out infinite}
-@keyframes podglow{0%,100%{box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 0 3px rgba(152,160,255,.55)}50%{box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 0 6px rgba(152,160,255,.28)}}
-.pod.leader .avatar{outline:2px solid rgba(124,108,255,.9);outline-offset:2px}
-.dbtn{position:absolute;right:-6px;bottom:-4px;z-index:4;width:20px;height:20px;border-radius:50%;
-  background:var(--cream);color:#1a1a1a;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 5px rgba(0,0,0,.5);border:1px solid #cbb98a}
+  box-shadow:0 4px 12px rgba(0,0,0,.55),inset 0 -3px 8px rgba(0,0,0,.28),inset 0 2px 0 rgba(255,255,255,.28);
+  border:2px solid rgba(0,0,0,.35);transition:box-shadow .25s}
+.av-emo{font-size:26px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.avatar.bot{box-shadow:0 4px 12px rgba(0,0,0,.55),inset 0 0 0 2px rgba(166,174,255,.35),inset 0 -3px 8px rgba(0,0,0,.3)}
+.pod.me .avatar{box-shadow:0 4px 14px rgba(0,0,0,.6),0 0 0 2px rgba(232,190,99,.55),inset 0 -3px 8px rgba(0,0,0,.28)}
+.pod.active .avatar{animation:podglow 1.2s ease-in-out infinite}
+@keyframes podglow{0%,100%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 3px rgba(166,174,255,.6),0 0 16px rgba(107,120,255,.45)}
+  50%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 7px rgba(166,174,255,.22),0 0 26px rgba(107,120,255,.28)}}
+.pod.leader .avatar{outline:2px solid rgba(166,174,255,.9);outline-offset:2px}
+.dbtn{position:absolute;right:-6px;bottom:-4px;z-index:4;width:21px;height:21px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,#e8dcc0);color:#231c0c;font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(0,0,0,.6);border:1px solid #bda875}
 .ring{position:absolute;inset:-5px;z-index:3;border-radius:50%;padding:3px;pointer-events:none;
   -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));
           mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
 .ring-fill{width:100%;height:100%;border-radius:50%;background:conic-gradient(#3ddc84 100%, rgba(255,255,255,.12) 0)}
-.pod-plate{display:flex;flex-direction:column;align-items:center;gap:0;background:rgba(6,10,16,.72);
-  border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:2px 9px;min-width:64px;max-width:92px}
-.pod.me .pod-plate{border-color:rgba(152,160,255,.55)}
-.pod-name{font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:84px}
-.pod-stack{font-size:12.5px;font-weight:800;color:var(--gold-2);font-variant-numeric:tabular-nums;line-height:1.25}
-.pod-stack .st-fold{color:var(--faint);font-weight:600}
-.pod-stack .st-allin{color:#ffd7a3;font-weight:800;letter-spacing:.5px}
-.pod-best{font-size:9.5px;color:#d6cfff;text-align:center;line-height:1.1;background:rgba(124,108,255,.16);border-radius:5px;padding:1px 5px;white-space:nowrap}
-.pod-secs{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.pod-plate{display:flex;flex-direction:column;align-items:center;gap:0;
+  background:linear-gradient(180deg,rgba(24,29,38,.9),rgba(10,13,18,.92));backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:3px 10px;min-width:66px;max-width:92px;
+  box-shadow:0 4px 12px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.07)}
+.pod.me .pod-plate{border-color:rgba(232,190,99,.5);box-shadow:0 4px 14px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1)}
+.pod-name{font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:84px;letter-spacing:.2px}
+.pod-stack{font-size:13px;font-weight:800;color:var(--gold-2);line-height:1.3}
+.pod-stack .st-fold{color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:.4px}
+.pod-stack .st-allin{color:#ffcf8a;font-weight:800;letter-spacing:.6px;font-size:11.5px}
+.pod-best{font-size:9.5px;color:#d9dcff;text-align:center;line-height:1.15;background:rgba(107,120,255,.22);
+  border:1px solid rgba(107,120,255,.3);border-radius:6px;padding:1.5px 6px;
+  max-width:104px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod-secs{font-size:11.5px;font-weight:800;line-height:1}
 
 /* lobby pods (waiting room) */
-.pod.lobby{gap:4px}
+.pod.lobby{gap:5px}
 .pod.lobby .pod-name{max-width:80px}
 .pod.lobby .pod-stack{color:var(--gold-2)}
 
 /* bet chips (between each seat and the pot) */
-.betchip{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:5px;
-  background:rgba(6,10,16,.82);border:1px solid rgba(215,180,92,.5);color:#ffe9b8;font-size:11px;font-weight:800;
-  border-radius:999px;padding:2px 8px 2px 5px;box-shadow:0 3px 8px rgba(0,0,0,.5);font-variant-numeric:tabular-nums;white-space:nowrap}
-.chip-dot{width:11px;height:11px;border-radius:50%;background:conic-gradient(#e8c15a 0 25%,#b9412f 0 50%,#e8c15a 0 75%,#b9412f 0);border:1px solid rgba(255,255,255,.6);flex:none}
+.betchip{position:absolute;display:inline-flex;align-items:center;gap:5px;
+  background:linear-gradient(180deg,rgba(26,31,40,.95),rgba(8,11,16,.95));border:1px solid rgba(232,190,99,.5);
+  color:var(--gold-2);font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 9px 3px 5px;
+  box-shadow:0 4px 10px rgba(0,0,0,.6);white-space:nowrap}
+.chip-dot{width:12px;height:12px;border-radius:50%;flex:none;
+  background:conic-gradient(#f0d089 0 25%,#c0452f 0 50%,#f0d089 0 75%,#c0452f 0);
+  border:1.5px solid rgba(255,255,255,.75);box-shadow:0 1px 3px rgba(0,0,0,.5)}
 
 .tag{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.tag.allin{color:#ffd7a3;font-weight:700}
+.tag.allin{color:#ffcf8a;font-weight:700}
 .ctl-timer{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
-.ctl-timer-label{color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-size:10px}
-.ctl-secs{color:var(--gold-2);font-weight:800;font-size:13px;font-variant-numeric:tabular-nums}
+.ctl-timer-label{color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:10px;font-weight:600}
+.ctl-secs{color:var(--gold-2);font-weight:800;font-size:13.5px}
 
 /* center of the table */
 .center{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
-  display:flex;flex-direction:column;align-items:center;gap:7px;width:min(88%,300px)}
-.board{display:flex;gap:4px;justify-content:center;min-height:var(--card-h)}
-.pot{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.42);border:1px solid rgba(215,180,92,.45);border-radius:999px;padding:4px 15px}
-.pot-label{font-size:10px;letter-spacing:2px;color:var(--muted)}
-.pot-amt{font-family:"Oswald",sans-serif;font-size:18px;color:#ffe9b8;font-variant-numeric:tabular-nums}
-.pot-amt.win{font-size:13px;color:#bff0cf;font-family:"Inter",sans-serif;text-align:center;line-height:1.3}
-.phase{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#cfe6da;min-height:13px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  display:flex;flex-direction:column;align-items:center;gap:9px;width:min(88%,300px)}
+/* stack order: pot, street label, then the board (keeps the label clear of the bottom seat) */
+.pot{order:1}.phase{order:2}.board{order:3}
+.board{display:flex;gap:5px;justify-content:center;min-height:var(--board-h)}
+#board .card{width:var(--board-w);height:var(--board-h)}
+#board .card .cr{font-size:calc(var(--board-w)*.52)}
+#board .card .cs{font-size:calc(var(--board-w)*.44)}
+.pot{display:inline-flex;align-items:center;gap:9px;max-width:100%;background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.36));
+  border:1px solid rgba(232,190,99,.42);border-radius:999px;padding:5px 17px;
+  box-shadow:0 5px 16px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+.pot-label{font-size:9.5px;letter-spacing:2.4px;color:var(--muted);font-weight:600}
+.pot-amt{font-family:"Oswald",sans-serif;font-size:19px;color:var(--gold-2);text-shadow:0 1px 6px rgba(232,190,99,.3)}
+.pot-amt.win{font-size:12.5px;color:#c6f2d6;font-family:"Inter",sans-serif;text-align:center;line-height:1.3;font-weight:600;
+  max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.phase{font-size:10.5px;letter-spacing:2.6px;text-transform:uppercase;color:#cfe6da;min-height:13px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.7)}
 
-/* playing cards */
-.card{width:var(--card-w);height:var(--card-h);border-radius:6px;background:var(--cream);
-  box-shadow:0 3px 7px rgba(0,0,0,.4);position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;
-  border:1px solid var(--cream-line);overflow:hidden}
-.card .cr{font-family:"Oswald",sans-serif;font-weight:700;font-size:calc(var(--card-w)*.5);line-height:.9}
-.card .cs{font-size:calc(var(--card-w)*.42);line-height:.9}
-.card.red{color:var(--red)} .card.blk{color:var(--blk)}
-.card.back{background:
-  repeating-linear-gradient(45deg,#2a1d3f 0 6px,#3a2a55 6px 12px);
-  border:1px solid rgba(215,180,92,.4);box-shadow:inset 0 0 0 2px rgba(215,180,92,.3),0 3px 7px rgba(0,0,0,.4)}
-.card.back::after{content:"◆";color:rgba(215,180,92,.6);font-size:calc(var(--card-w)*.4)}
-.card.slot{background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.16);box-shadow:none}
+/* playing cards — face and back come from the player's card theme */
+.card{width:var(--card-w);height:var(--card-h);border-radius:7px;
+  background:var(--face-bg);
+  box-shadow:var(--face-shadow);
+  position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  border:1px solid var(--face-edge);overflow:hidden}
+.card .cr{font-family:"Oswald",sans-serif;font-weight:700;font-size:calc(var(--card-w)*.5);line-height:.9;z-index:1}
+.card .cs{font-size:calc(var(--card-w)*.42);line-height:.9;z-index:1}
+.card.red{color:var(--face-red)} .card.blk{color:var(--face-blk)}
+.card.back{background:var(--back-bg);
+  border:1px solid var(--back-edge);
+  box-shadow:inset 0 0 0 2px var(--back-inset),0 4px 9px rgba(0,0,0,.45)}
+.card.back::after{content:var(--back-sym);color:var(--back-glyph);font-size:calc(var(--card-w)*.36);line-height:1}
+.card.slot{background:rgba(255,255,255,.045);border:1px dashed rgba(255,255,255,.18);box-shadow:inset 0 0 18px rgba(0,0,0,.25)}
 .card.placeholder{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);box-shadow:none}
 /* small cards in opponent pods */
-.card.mini{width:var(--mini-w);height:var(--mini-h);border-radius:4px}
+.card.mini{width:var(--mini-w);height:var(--mini-h);border-radius:5px}
 .card.mini .cr{font-size:calc(var(--mini-w)*.52)}.card.mini .cs{font-size:calc(var(--mini-w)*.46)}
 /* my (bottom) cards a touch larger for readability */
 .pod.me .pod-cards .card{width:var(--card-w);height:var(--card-h)}
 
-/* me panel — now a slim utility bar (cards live in my pod) */
-.me-panel{margin:6px 12px 0;display:flex;justify-content:center}
-.me-note{color:var(--muted);font-size:13px;text-align:center;margin-bottom:10px}
-.me-util{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+/* me panel — a slim utility bar (cards live in my pod) */
+.me-panel{margin:5px 12px 0;display:flex;justify-content:center}
+.me-panel.has-action{display:flex!important}   /* never hide the Show-cards choice */
+.me-note{color:var(--muted);font-size:13.5px;text-align:center;margin-bottom:10px}
+.me-util{display:flex;gap:9px;align-items:center;justify-content:center;flex-wrap:wrap}
+.me-util .ghost.sm{padding:6px 11px;font-size:12px}
 .me-status{color:var(--muted);font-size:12.5px;letter-spacing:.3px}
 
-/* controls (sticky) */
-.controls{margin:8px 12px 0;padding:12px 12px 16px;
-  background:rgba(8,11,14,.55);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;gap:10px}
-.ctl-row{display:flex;gap:10px}
-.btn{flex:1;border-radius:12px;padding:16px 10px;font-size:16px;font-weight:700;letter-spacing:.3px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
-.btn.fold{background:linear-gradient(180deg,#42474e,#31353b);color:#f0d5d2;border:1px solid rgba(224,87,79,.4)}
-.btn.check,.btn.call{background:linear-gradient(180deg,#3fbf78,#2f9d60);color:#06210f}
-.btn.raise{flex:none;padding:16px 20px;white-space:nowrap}
-.ctl-raise{display:flex;flex-direction:column;gap:9px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:11px}
+/* action bar */
+.controls{margin:7px 10px 0;padding:10px 10px 12px;
+  background:linear-gradient(180deg,rgba(26,31,40,.75),rgba(8,11,16,.8));backdrop-filter:blur(10px);
+  border:1px solid var(--line2);border-radius:var(--r);display:flex;flex-direction:column;gap:11px;
+  box-shadow:0 -2px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06)}
+.ctl-row{display:flex;gap:9px}
+.btn{flex:1;border-radius:12px;padding:14px 10px;font-size:16px;font-weight:800;letter-spacing:.3px;
+  box-shadow:0 5px 16px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .09s,filter .16s}
+.btn:hover{filter:brightness(1.07)}
+.btn.fold{background:linear-gradient(180deg,#4a5059,#343941);color:#ffd4d2;border:1px solid rgba(224,74,80,.45)}
+.btn.check,.btn.call{background:linear-gradient(180deg,#46cd86,#2c9a60);color:#06240f;text-shadow:0 1px 0 rgba(255,255,255,.2)}
+.btn.raise{flex:none;padding:14px 18px;white-space:nowrap;
+  background:linear-gradient(180deg,var(--gold-2),var(--gold) 55%,#d6a944);color:#2a1e05}
+.ctl-raise{display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,.34);border:1px solid var(--line);border-radius:12px;padding:9px}
 .quick{display:flex;gap:7px;flex-wrap:wrap}
-.chipbtn{flex:1;min-width:60px;background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:8px;padding:9px 6px;font-size:13px;font-weight:600;color:var(--ink)}
-.chipbtn:hover{background:rgba(215,180,92,.15);border-color:var(--gold)}
-.slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--gold-deep),var(--gold-2));outline:none}
-.slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--cream);border:3px solid var(--gold);box-shadow:0 2px 6px rgba(0,0,0,.5);cursor:pointer}
-.slider::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--cream);border:3px solid var(--gold);cursor:pointer}
+.chipbtn{flex:1;min-width:56px;background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:9px;
+  padding:8px 6px;font-size:13px;font-weight:700;color:var(--ink);transition:background .16s,border-color .16s,color .16s}
+.chipbtn:hover{background:rgba(232,190,99,.16);border-color:var(--gold);color:var(--gold-2)}
+.slider{-webkit-appearance:none;appearance:none;width:100%;height:7px;border-radius:7px;outline:none;
+  background:linear-gradient(90deg,var(--gold-deep),var(--gold) 60%,var(--gold-2));box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#fff,#f0e6cf);border:3px solid var(--gold-deep);
+  box-shadow:0 3px 8px rgba(0,0,0,.55);cursor:pointer}
+.slider::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,#f0e6cf);
+  border:3px solid var(--gold-deep);box-shadow:0 3px 8px rgba(0,0,0,.55);cursor:pointer}
 .raise-top{display:flex;align-items:center;gap:10px}
-.raise-amt{font-family:"Oswald",sans-serif;font-size:20px;color:var(--gold-2);font-variant-numeric:tabular-nums;flex:1}
-.raise-amt-input{flex:1;min-width:0;width:100%;background:#0c1116;border:1px solid var(--line2);border-radius:8px;color:var(--gold-2);font-family:"Oswald",sans-serif;font-size:20px;font-variant-numeric:tabular-nums;padding:9px 11px;outline:none}
-.raise-amt-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(215,180,92,.18)}
-.timerbar{height:4px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
-.timerfill{height:100%;width:100%;background:var(--good);transition:width .5s linear,background .3s}
+.raise-amt{font-family:"Oswald",sans-serif;font-size:20px;color:var(--gold-2);flex:1}
+.raise-amt-input{flex:1;min-width:0;width:100%;background:rgba(0,0,0,.45);border:1px solid var(--line2);border-radius:9px;
+  color:var(--gold-2);font-family:"Oswald",sans-serif;font-size:19px;padding:8px 11px;outline:none;transition:border-color .16s,box-shadow .16s}
+.raise-amt-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,190,99,.18)}
+.timerbar{height:5px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.timerfill{height:100%;width:100%;background:var(--good);transition:width .12s linear,background .3s}
 
 /* drawer: log + chat */
-.drawer{margin:10px 12px calc(18px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.drawer{margin:7px 10px calc(8px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
 .drawer-tabs{display:flex;border-bottom:1px solid var(--line)}
-.dtab{flex:1;background:none;padding:11px;font-size:13px;color:var(--muted);letter-spacing:.4px}
+.dtab{flex:1;background:none;padding:9px;font-size:13px;color:var(--muted);letter-spacing:.5px;font-weight:600;transition:color .16s}
+.dtab:hover{color:var(--ink)}
 .dtab.active{color:var(--gold-2);box-shadow:inset 0 -2px 0 var(--gold)}
-.tabpane{max-height:180px;display:flex;flex-direction:column}
-.log,.chat{overflow-y:auto;padding:10px 13px;font-size:12.5px}
-.log{max-height:180px}
-.logline{color:var(--muted);padding:2px 0;line-height:1.35;font-variant-numeric:tabular-nums}
-.logline:last-child{color:var(--ink)}
+.tabpane{max-height:150px;display:flex;flex-direction:column}
+.drawer:not(.open) .tabpane{display:none!important}
+.drawer:not(.open) .drawer-tabs{border-bottom:none}
+.dtab-toggle{flex:none;background:none;padding:9px 12px;color:var(--muted);font-size:13px;transition:transform .2s}
+.drawer.open .dtab-toggle{transform:rotate(180deg)}
+.log,.chat{overflow-y:auto;padding:11px 14px;font-size:12.5px}
+.log{max-height:150px}
+.logline{color:var(--muted);padding:2.5px 0;line-height:1.4;font-variant-numeric:tabular-nums}
+.logline:last-child{color:var(--ink);font-weight:500}
 .chat{max-height:130px}
-.chatline{padding:3px 0;line-height:1.35;color:var(--ink)}
-.chatline b{color:var(--gold-2);font-weight:600}
+.chatline{padding:3px 0;line-height:1.4;color:var(--ink)}
+.chatline b{color:var(--gold-2);font-weight:700}
 .chat-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
-.chat-form input{flex:1;padding:10px 12px;font-size:14px}
+.chat-form input{flex:1;padding:11px 13px;font-size:14px}
 
 /* toast */
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);
-  background:#1c2530;border:1px solid var(--gold);color:var(--ink);padding:11px 18px;border-radius:999px;font-size:13.5px;
-  box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:100;max-width:90vw;text-align:center}
+  background:linear-gradient(180deg,#232a34,#161b22);border:1px solid var(--gold);color:var(--ink);padding:12px 20px;border-radius:999px;
+  font-size:13.5px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:100;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* setup screen */
 .setup-steps{counter-reset:step;display:flex;flex-direction:column;gap:14px;margin:8px 0 18px}
-.setup-steps li{list-style:none;position:relative;padding-left:40px;color:var(--ink);font-size:14px;line-height:1.5}
-.setup-steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;
-  background:linear-gradient(180deg,var(--gold-2),var(--gold));color:#20180a;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
-.setup-steps code{background:rgba(255,255,255,.08);padding:1px 6px;border-radius:5px;font-size:12.5px;color:var(--gold-2)}
+.setup-steps li{list-style:none;position:relative;padding-left:40px;color:var(--ink);font-size:14px;line-height:1.55}
+.setup-steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:27px;height:27px;border-radius:50%;
+  background:linear-gradient(180deg,var(--gold-2),var(--gold));color:#2a1e05;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+.setup-steps code{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:5px;font-size:12.5px;color:var(--gold-2)}
 .setup-steps a{color:var(--gold-2)}
 textarea#cfg-input{min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
 
 /* pre-start lobby */
 .lobby-box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(90%,320px);
-  display:flex;flex-direction:column;gap:10px;padding:14px 14px;background:rgba(6,10,16,.82);
-  border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.5);max-height:92%;overflow:auto;z-index:5}
-.lobby-title{font-family:"Oswald",sans-serif;font-size:18px;text-align:center;color:var(--ink);letter-spacing:.5px}
-.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.settings-grid>div{background:rgba(0,0,0,.32);border:1px solid var(--line);border-radius:10px;padding:8px 11px;display:flex;flex-direction:column;gap:2px}
-.settings-grid span{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
-.settings-grid b{font-size:15px;color:var(--gold-2);font-variant-numeric:tabular-nums}
-.lobby-actions{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+  display:flex;flex-direction:column;gap:11px;padding:16px;background:linear-gradient(180deg,rgba(22,27,35,.94),rgba(8,11,16,.95));
+  backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.14);border-radius:18px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);max-height:92%;overflow:auto;z-index:5}
+.lobby-title{font-family:"Oswald",sans-serif;font-size:19px;text-align:center;color:var(--ink);letter-spacing:.6px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.settings-grid>div{background:rgba(0,0,0,.34);border:1px solid var(--line);border-radius:11px;padding:9px 12px;display:flex;flex-direction:column;gap:2px}
+.settings-grid span{font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.settings-grid b{font-size:15.5px;color:var(--gold-2);font-variant-numeric:tabular-nums}
+.lobby-actions{display:flex;flex-direction:column;gap:9px;margin-top:2px}
 .lobby-actions .gold{width:100%}
-.waiting{text-align:center;color:#d8ede2;font-size:13.5px;padding:10px;background:rgba(0,0,0,.25);border-radius:10px}
-.lobby-share{text-align:center;color:var(--muted);font-size:12px}
-.lobby-share b{color:var(--gold-2);letter-spacing:2px}
+.waiting{text-align:center;color:#d8ede2;font-size:13.5px;padding:11px;background:rgba(0,0,0,.28);border-radius:11px}
+.lobby-share{text-align:center;color:var(--muted);font-size:12px;line-height:1.5}
+.lobby-share b{color:var(--gold-2);letter-spacing:2.5px}
 select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
   background-position:calc(100% - 20px) 22px,calc(100% - 14px) 22px;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:38px}
-.inp.sm{padding:9px 10px;font-size:14px}
-.settings-edit{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.settings-edit label{display:flex;flex-direction:column;gap:4px;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.inp.sm{padding:10px 11px;font-size:14px}
+.settings-edit{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.settings-edit label{display:flex;flex-direction:column;gap:5px;font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:600}
 .settings-edit .set-note{grid-column:1/-1;font-size:11px;color:var(--faint);text-transform:none;letter-spacing:0}
 .settings-edit label.wide{grid-column:1/-1}
 .timer-presets{grid-column:1/-1;display:flex;gap:6px}
-.timer-presets button{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:8px;padding:8px 4px;font-size:12px;color:var(--ink);cursor:pointer}
-.timer-presets button:hover{background:rgba(215,180,92,.16);border-color:var(--gold)}
-.botrow{display:flex;gap:8px}
+.timer-presets button{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:9px;padding:9px 4px;
+  font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;transition:background .16s,border-color .16s,color .16s}
+.timer-presets button:hover{background:rgba(232,190,99,.16);border-color:var(--gold);color:var(--gold-2)}
+.botrow{display:flex;gap:9px}
 .botrow .ghost{flex:1}
-/* card dealing animation + promo peek */
-@keyframes dealIn{from{opacity:0;transform:translateY(-16px) rotate(-7deg) scale(.92)}to{opacity:1;transform:none}}
-.card.deal{animation:dealIn .3s cubic-bezier(.2,.8,.3,1) both}
+
+/* ---------- cards arriving on the table ----------------------------------
+   Hole cards fly OUT from the middle of the table to their seat (--dx/--dy are
+   set per seat in JS); community cards come in off the dealer's deck and turn
+   face up as they land. */
+.board{perspective:820px}
+@keyframes dealIn{
+  0%{opacity:0;transform:translate3d(var(--dx,0px),var(--dy,-24px),0) rotate(var(--dr,-12deg)) rotateY(72deg) scale(.82)}
+  55%{opacity:1}
+  100%{opacity:1;transform:translate3d(0,0,0) rotate(0deg) rotateY(0deg) scale(1)}
+}
+.card.deal{animation:dealIn .44s cubic-bezier(.22,.9,.28,1) both;transform-origin:50% 60%}
+@keyframes boardIn{
+  0%{opacity:0;transform:translate3d(-124px,-58px,0) rotate(-26deg) rotateY(88deg) scale(.78)}
+  40%{opacity:1}
+  70%{transform:translate3d(0,0,0) rotate(0deg) rotateY(0deg) scale(1.06)}
+  100%{opacity:1;transform:translate3d(0,0,0) rotate(0deg) rotateY(0deg) scale(1)}
+}
+#board .card.deal{animation:boardIn .52s cubic-bezier(.2,.86,.26,1) both}
 .card.peek{opacity:.46;filter:grayscale(.5)}
-@media(prefers-reduced-motion:reduce){.card.deal{animation:none}}
+
+/* ---------- cards leaving the table before the next hand ------------------ */
+@keyframes sweepOff{
+  0%{opacity:1}
+  20%{transform:translate3d(6px,-13px,0) rotate(-7deg) scale(1.05);opacity:1}
+  100%{transform:translate3d(-200px,132px,0) rotate(-48deg) scale(.6);opacity:0}
+}
+@keyframes sweepFade{0%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(.55)}}
+#board.sweeping .card,.seats-layer.sweeping .pod-cards .card{
+  animation:sweepOff .62s cubic-bezier(.45,0,.9,.55) both}
+#board.sweeping .card:nth-child(2){animation-delay:.05s}
+#board.sweeping .card:nth-child(3){animation-delay:.1s}
+#board.sweeping .card:nth-child(4){animation-delay:.15s}
+#board.sweeping .card:nth-child(5){animation-delay:.2s}
+.seats-layer.sweeping .pod-cards .card:nth-child(2){animation-delay:.06s}
+.seats-layer.sweeping .betchip{animation:sweepFade .45s ease-in both}
+
+/* folded hands get thrown face down onto the table; showing turns them over */
+.card.muck{--rot:-9deg;transform:rotate(var(--rot)) scale(.86);box-shadow:0 3px 10px rgba(0,0,0,.62)}
+.pod-cards .card.muck:nth-child(2){--rot:11deg;margin-left:-9px}
+@keyframes tossIn{0%{transform:translateY(-26px) rotate(0deg) scale(1.05);opacity:.3}
+  100%{transform:rotate(var(--rot)) scale(.86);opacity:1}}
+.card.muck.toss{animation:tossIn .45s cubic-bezier(.2,.85,.3,1) both}
+@keyframes cardFlipMuck{0%{transform:rotateY(74deg) rotate(var(--rot)) scale(.8);opacity:.4}
+  100%{transform:rotateY(0deg) rotate(var(--rot)) scale(.86);opacity:1}}
+.card.muck.flip{animation:cardFlipMuck .5s ease-out both}
+
+/* end-of-hand card flip reveal */
+.pod-av,.pod-cards{perspective:520px}
+@keyframes cardFlip{0%{transform:rotateY(74deg) scale(.95);opacity:.4}55%{opacity:1}100%{transform:rotateY(0) scale(1);opacity:1}}
+.card.flip{animation:cardFlip .5s ease-out both;transform-origin:center}
+
+/* winner celebration: gold pulse + rising chips */
+@keyframes winGlow{0%,100%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 3px rgba(240,210,144,.9),0 0 24px rgba(240,210,144,.6)}
+  50%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 8px rgba(240,210,144,.35),0 0 38px rgba(240,210,144,.45)}}
+.pod.winner .avatar{animation:winGlow 1s ease-in-out infinite}
+.pod.winner .pod-plate{border-color:rgba(240,210,144,.85);box-shadow:0 4px 16px rgba(232,190,99,.3)}
+@keyframes winFloat{0%{transform:translateX(-50%) translateY(4px) scale(.85);opacity:0}
+  18%{opacity:1;transform:translateX(-50%) translateY(-6px) scale(1.06)}
+  100%{transform:translateX(-50%) translateY(-54px) scale(1);opacity:0}}
+.win-float{position:absolute;left:50%;top:-8px;color:#ffe4a0;font-weight:800;font-size:17px;font-family:"Oswald",sans-serif;
+  text-shadow:0 2px 8px rgba(0,0,0,.8),0 0 14px rgba(232,190,99,.5);pointer-events:none;white-space:nowrap;z-index:7;
+  animation:winFloat 1.7s ease-out both}
+
+/* pot pulse when a hand is won */
+@keyframes potPulse{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+.pot.won{animation:potPulse .6s ease-out both;border-color:rgba(232,190,99,.9)}
+
+/* bet chip arriving */
+/* a bet chip sits on its own seat, on the side facing the middle of the table */
+.betchip.pod-bet{left:50%;transform:translateX(-50%);z-index:6}
+.betchip.pod-bet.above{bottom:calc(100% + 3px)}
+.betchip.pod-bet.below{top:calc(100% + 3px)}
+@keyframes chipPop{from{transform:translateX(-50%) scale(.4);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+.betchip.pop{animation:chipPop .26s cubic-bezier(.2,1.1,.4,1) both}
+
+/* settings toggle row */
+.toggle-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:rgba(0,0,0,.34);border:1px solid var(--line);border-radius:11px;padding:10px 12px;
+  color:var(--muted);font-size:12px;text-align:left;letter-spacing:.2px;text-transform:none;transition:border-color .16s,color .16s}
+.toggle-row.on{color:var(--ink);border-color:rgba(232,190,99,.45)}
+.toggle-row .sw{flex:none;width:38px;height:21px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .18s}
+.toggle-row .sw::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;
+  background:#fff;transition:transform .18s;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+.toggle-row.on .sw{background:linear-gradient(180deg,var(--gold-2),var(--gold))}
+.toggle-row.on .sw::after{transform:translateX(17px)}
+
+/* audio settings popover */
+.sound-panel{position:absolute;top:58px;right:12px;z-index:40;width:252px;
+  background:linear-gradient(180deg,rgba(27,32,42,.97),rgba(10,13,18,.98));backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.15);border-radius:15px;padding:13px 14px;
+  box-shadow:0 22px 50px rgba(0,0,0,.68);display:flex;flex-direction:column;gap:12px}
+.sp-title{font-family:"Oswald",sans-serif;font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.sp-row{display:grid;grid-template-columns:1fr auto;grid-template-areas:"lab val" "sld sld";gap:6px 8px;align-items:center;font-size:13px;color:var(--ink);cursor:pointer}
+.sp-row>span{grid-area:lab}
+.sp-row>b{grid-area:val;color:var(--gold-2);font-size:12px;font-variant-numeric:tabular-nums}
+.sp-row>input[type=range]{grid-area:sld;-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;outline:none;
+  background:linear-gradient(90deg,var(--gold-deep),var(--gold));box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+.sp-row>input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#fff,#f0e6cf);border:2px solid var(--gold-deep);box-shadow:0 2px 5px rgba(0,0,0,.5);cursor:pointer}
+.sp-row>input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#f4ead4;border:2px solid var(--gold-deep);cursor:pointer}
+
+/* sound + style buttons in the top bar */
+.tbar-tools{display:flex;align-items:center;gap:6px;flex:none}
+.sound-btn,.theme-btn{min-width:0;font-size:16px;padding:9px 11px;line-height:1}
+.sound-btn.muted{opacity:.55}
+
+/* look & feel popover */
+.theme-panel{position:absolute;top:58px;right:12px;z-index:41;width:min(290px,calc(100vw - 24px));
+  background:linear-gradient(180deg,rgba(27,32,42,.97),rgba(10,13,18,.98));backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.15);border-radius:15px;padding:13px 14px;
+  box-shadow:0 22px 50px rgba(0,0,0,.68);display:flex;flex-direction:column;gap:11px}
+.tp-group{display:flex;flex-direction:column;gap:7px}
+.tp-lab{font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tp-swatches{display:flex;gap:7px;flex-wrap:wrap}
+.sw-btn{width:37px;height:29px;border-radius:9px;padding:0;position:relative;overflow:hidden;cursor:pointer;
+  border:2px solid rgba(255,255,255,.14);box-shadow:0 3px 8px rgba(0,0,0,.45);
+  transition:transform .12s,border-color .16s,box-shadow .16s}
+.sw-btn:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.4)}
+.sw-btn.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,190,99,.32),0 3px 10px rgba(0,0,0,.5)}
+.sw-btn.on::after{content:"\2713";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:13px;font-weight:800;text-shadow:0 1px 5px rgba(0,0,0,.95)}
+.tp-note{font-size:11px;color:var(--faint);line-height:1.4}
+.tp-note b{color:var(--muted)}
+
+@media(max-height:780px) and (max-width:979px){
+  :root{--card-w:clamp(33px,9.4vw,44px);--mini-w:clamp(22px,6.4vw,29px);--board-w:clamp(27px,7.4vw,37px)}
+  .pod{width:74px}
+  .avatar,.pod-av{width:46px;height:46px}
+  .av-emo{font-size:23px}
+  .pod-plate{padding:2px 8px;min-width:58px}
+  .pod-name{font-size:10.5px}.pod-stack{font-size:12px}
+  .pod:not(.me) .pod-av .pod-cards{top:-16px}
+}
+@media(max-height:670px) and (max-width:979px){
+  :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(20px,5.8vw,25px);--board-w:clamp(24px,6.6vw,32px)}
+  .pod{width:66px}
+  .avatar,.pod-av{width:40px;height:40px}
+  .av-emo{font-size:20px}
+  .pod-best,.me-panel{display:none}              /* reclaim height; sit-out lives in the menu */
+  .pod:not(.me) .pod-av .pod-cards{top:-13px}
+  .pod-plate{padding:1px 7px;min-width:54px}
+  .felt{margin:3px 4px 1px}
+  .controls{margin:5px 8px 0;padding:8px 8px 10px;gap:8px}
+  .ctl-raise{gap:6px;padding:7px}
+  .btn{padding:12px 8px;font-size:15px}
+  .chipbtn{padding:6px 5px;font-size:12px}
+  .raise-amt-input{font-size:17px;padding:7px 10px}
+  .drawer{margin:5px 8px calc(5px + env(safe-area-inset-bottom,0px))}
+  .dtab{padding:7px;font-size:12px}
+  .tabpane,.log{max-height:104px}
+  .timerbar{height:4px}
+}
+@media(prefers-reduced-motion:reduce){
+  .card.deal,.card.flip,.win-float,.betchip.pop,.pot.won,.card.muck.toss,
+  #board .card.deal,#board.sweeping .card,.seats-layer.sweeping .pod-cards .card,
+  .seats-layer.sweeping .betchip{animation:none}
+  .pod.winner .avatar,.pod.active .avatar{animation:none;box-shadow:0 0 0 3px rgba(240,210,144,.85)}
+}
 
 @media(min-width:620px){
-  :root{--card-w:50px;--mini-w:32px}
+  :root{--card-w:50px;--mini-w:32px;--board-w:46px}
   .felt{margin:14px auto 4px;max-width:720px;width:calc(100% - 32px)}
   .table-oval{height:min(66vh,600px)}
   .pod{width:96px}
@@ -337,6 +582,176 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .av-emo{font-size:29px}
   .me-panel,.drawer{max-width:720px;margin-inline:auto}
   .controls{max-width:720px;margin-inline:auto;width:100%}
+}
+
+/* ---------- desktop / PC: table beside the action column, everything scaled up ---------- */
+@media(min-width:980px){
+  :root{--card-w:58px;--mini-w:38px;--board-w:54px}
+  #screen-table{display:grid;grid-template-columns:minmax(0,1fr) 350px;grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"bar bar" "ban ban" "felt side"}
+  .tbar{grid-area:bar}
+  .teach-banner{grid-area:ban}
+  .felt{grid-area:felt;margin:12px 6px 14px 16px;max-width:none;width:auto}
+  .sidecol{grid-area:side;display:flex;flex-direction:column;min-height:0;gap:10px;padding:12px 16px 16px 6px;overflow:hidden}
+  .sidecol>*{margin:0!important;max-width:none!important;width:auto!important}
+  .sidecol .drawer{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .sidecol .drawer .tabpane{max-height:none;flex:1 1 auto;min-height:0}
+  .sidecol .log,.sidecol .chat{max-height:none;flex:1 1 auto}
+  .me-panel{order:2}.controls{order:1}.drawer{order:3}
+  /* table furniture sized for a big screen */
+  .pod{width:108px;gap:5px}
+  .avatar,.pod-av{width:64px;height:64px}
+  .av-emo{font-size:32px}
+  .pod:not(.me) .pod-av .pod-cards{top:-22px}
+  .pod-plate{padding:4px 12px;min-width:84px;max-width:112px;border-radius:11px}
+  .pod-name{font-size:13px;max-width:104px}
+  .pod-stack{font-size:15px}
+  .pod-best{font-size:10.5px;max-width:120px}
+  .pod-secs{font-size:13px}
+  .dbtn{width:24px;height:24px;font-size:12px}
+  .betchip{font-size:13px;padding:4px 11px 4px 6px}
+  .chip-dot{width:14px;height:14px}
+  .pot{padding:4px 18px;gap:10px}
+  .pot-label{font-size:10.5px}
+  .pot-amt{font-size:23px}
+  .phase{font-size:11.5px;letter-spacing:3px;min-height:12px}
+  .center{gap:7px;width:min(78%,420px);top:43%}
+  .board{gap:7px}
+  .betchip.pod-bet.above{bottom:calc(100% + 7px)}
+  .betchip.pod-bet.below{top:calc(100% + 7px)}
+}
+
+/* ---------- PC: compact cabinet on a blurred wood backdrop ---------- */
+@media(min-width:980px){
+  body{display:flex;align-items:center;justify-content:center;padding:22px;overflow:hidden}
+  .screen{min-height:0}
+  #screen-home,#screen-config{width:100%;max-width:560px}
+  #screen-table{height:min(calc(100dvh - 44px),860px);width:100%;max-width:1150px;
+    border-radius:24px;border:1px solid rgba(255,255,255,.13);overflow:hidden;
+    box-shadow:0 38px 90px rgba(0,0,0,.7),0 0 0 1px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+    background:var(--cab)}
+}
+
+
+/* ==========================================================================
+   LOOK & FEEL — every player picks their own from the 🎨 button in the top bar.
+   Three independent sets: the room behind the table, the table itself, and the
+   deck. Stored in localStorage, applied as data-attributes on <html>.
+   ========================================================================== */
+
+/* ---------- 1. the room (background) ---------- */
+[data-bg="wood"]{
+  --bd:repeating-linear-gradient(93deg,#6b4a2c 0 9px,#4f3520 9px 19px,#7a5433 19px 27px,#5a3d24 27px 38px,#452e1c 38px 47px),
+      repeating-linear-gradient(87deg,rgba(0,0,0,.3) 0 4px,transparent 4px 21px),
+      linear-gradient(180deg,#56381f,#22160f);
+  --bd-blur:13px;--bd-bright:.66;--bd-sat:1.15;
+  --vig:radial-gradient(120% 90% at 50% 45%, transparent 35%, rgba(0,0,0,.55) 100%);
+  --cab:radial-gradient(900px 460px at 50% -12%, rgba(107,120,255,.15), transparent 62%),
+        linear-gradient(180deg,#131822 0%,#0b0e14 100%);
+}
+[data-bg="noir"]{
+  --bd:radial-gradient(64% 48% at 50% 16%, rgba(255,255,255,.16), transparent 72%),
+      repeating-linear-gradient(118deg,#1a1e26 0 20px,#12151c 20px 42px),
+      linear-gradient(180deg,#1d222b,#070910);
+  --bd-blur:17px;--bd-bright:.9;--bd-sat:.85;
+  --vig:radial-gradient(120% 90% at 50% 40%, transparent 28%, rgba(0,0,0,.75) 100%);
+  --cab:radial-gradient(900px 460px at 50% -12%, rgba(190,200,220,.1), transparent 62%),
+        linear-gradient(180deg,#141821 0%,#080a0f 100%);
+}
+[data-bg="velvet"]{
+  --bd:radial-gradient(58% 46% at 50% 14%, rgba(255,130,150,.28), transparent 74%),
+      repeating-linear-gradient(101deg,#73182a 0 13px,#4d0f1c 13px 29px),
+      linear-gradient(180deg,#5d1422,#1b060b);
+  --bd-blur:19px;--bd-bright:.7;--bd-sat:1.15;
+  --vig:radial-gradient(120% 90% at 50% 45%, transparent 30%, rgba(0,0,0,.62) 100%);
+  --cab:radial-gradient(900px 460px at 50% -12%, rgba(255,120,150,.14), transparent 62%),
+        linear-gradient(180deg,#1d1119 0%,#0c070a 100%);
+}
+[data-bg="emerald"]{
+  --bd:radial-gradient(62% 50% at 50% 16%, rgba(150,255,210,.2), transparent 74%),
+      repeating-linear-gradient(112deg,#17503c 0 16px,#0e3b2c 16px 34px),
+      linear-gradient(180deg,#155041,#04120e);
+  --bd-blur:18px;--bd-bright:.72;--bd-sat:1.1;
+  --vig:radial-gradient(120% 90% at 50% 45%, transparent 32%, rgba(0,0,0,.6) 100%);
+  --cab:radial-gradient(900px 460px at 50% -12%, rgba(90,240,190,.12), transparent 62%),
+        linear-gradient(180deg,#0f1a18 0%,#070d0c 100%);
+}
+[data-bg="neon"]{
+  --bd:radial-gradient(52% 44% at 22% 20%, rgba(122,59,255,.65), transparent 70%),
+      radial-gradient(48% 42% at 80% 28%, rgba(0,200,255,.5), transparent 70%),
+      radial-gradient(60% 50% at 50% 100%, rgba(255,60,170,.42), transparent 72%),
+      linear-gradient(180deg,#1a1150,#070818);
+  --bd-blur:34px;--bd-bright:.78;--bd-sat:1.35;
+  --vig:radial-gradient(120% 90% at 50% 45%, transparent 26%, rgba(0,0,0,.66) 100%);
+  --cab:radial-gradient(900px 460px at 50% -12%, rgba(150,90,255,.2), transparent 62%),
+        linear-gradient(180deg,#141030 0%,#08060f 100%);
+}
+[data-bg="sunset"]{
+  --bd:radial-gradient(60% 52% at 50% 6%, rgba(255,196,110,.75), transparent 70%),
+      radial-gradient(70% 52% at 20% 82%, rgba(214,66,72,.6), transparent 72%),
+      linear-gradient(180deg,#c2652c,#3a1220 78%,#180810);
+  --bd-blur:30px;--bd-bright:.64;--bd-sat:1.25;
+  --vig:radial-gradient(120% 90% at 50% 45%, transparent 30%, rgba(0,0,0,.64) 100%);
+  --cab:radial-gradient(900px 460px at 50% -12%, rgba(255,160,90,.16), transparent 62%),
+        linear-gradient(180deg,#1d1418 0%,#0b0709 100%);
+}
+
+/* ---------- 2. the table (felt + rail) ---------- */
+[data-table="green"]  {--felt-1:#2f9068;--felt-2:#15633f;--felt-3:#083826;--rail-col:#2c2519;--rail-hi:rgba(240,200,105,.30)}
+[data-table="blue"]   {--felt-1:#3f86dd;--felt-2:#1d4f96;--felt-3:#071f3d;--rail-col:#1f2739;--rail-hi:rgba(160,198,255,.32)}
+[data-table="red"]    {--felt-1:#ac403e;--felt-2:#78191c;--felt-3:#330a0c;--rail-col:#2b1815;--rail-hi:rgba(255,178,158,.28)}
+[data-table="purple"] {--felt-1:#7a55c2;--felt-2:#4a2688;--felt-3:#1d0a36;--rail-col:#251a35;--rail-hi:rgba(206,178,255,.32)}
+[data-table="slate"]  {--felt-1:#525b69;--felt-2:#2c333e;--felt-3:#11141a;--rail-col:#191d24;--rail-hi:rgba(222,232,247,.28)}
+[data-table="teal"]   {--felt-1:#31a7a2;--felt-2:#11706d;--felt-3:#04302e;--rail-col:#13262a;--rail-hi:rgba(152,240,235,.3)}
+
+/* ---------- 3. the deck (card faces + backs) ---------- */
+[data-cards="classic"]{
+  --face-bg:linear-gradient(160deg,#fffdf7,#f8f4e9 45%,#efe7d5);
+  --face-edge:#ddd2ba;--face-red:#e04a50;--face-blk:#1a1c22;
+  --face-shadow:0 4px 9px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.6);
+  --back-bg:repeating-linear-gradient(45deg,#27201a 0 6px,#3a3026 6px 12px),linear-gradient(180deg,#3a3026,#27201a);
+  --back-edge:rgba(232,190,99,.42);--back-inset:rgba(232,190,99,.28);
+  --back-glyph:rgba(232,190,99,.65);--back-sym:"\25C6";
+}
+[data-cards="royal"]{
+  --face-bg:linear-gradient(160deg,#ffffff,#f7fbff 50%,#e8f0fb);
+  --face-edge:#c3d3e8;--face-red:#d6293f;--face-blk:#14203a;
+  --face-shadow:0 4px 9px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.75);
+  --back-bg:repeating-linear-gradient(45deg,#16337a 0 5px,#1f47a8 5px 10px),linear-gradient(180deg,#2451c0,#122b6d);
+  --back-edge:rgba(196,216,255,.6);--back-inset:rgba(255,255,255,.3);
+  --back-glyph:rgba(226,238,255,.9);--back-sym:"\2726";
+}
+[data-cards="crimson"]{
+  --face-bg:linear-gradient(160deg,#fffaf8,#fdf1ee 50%,#f3ded8);
+  --face-edge:#e6c8bf;--face-red:#cf2233;--face-blk:#241416;
+  --face-shadow:0 4px 9px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.65);
+  --back-bg:repeating-linear-gradient(45deg,#8e1220 0 5px,#b01c2b 5px 10px),linear-gradient(180deg,#a81a28,#5d0b14);
+  --back-edge:rgba(255,205,195,.55);--back-inset:rgba(255,235,225,.28);
+  --back-glyph:rgba(255,232,224,.9);--back-sym:"\2660";
+}
+[data-cards="noir"]{
+  --face-bg:linear-gradient(160deg,#333a47,#232935 48%,#171c25);
+  --face-edge:#48525f;--face-red:#ff7d88;--face-blk:#eef2f8;
+  --face-shadow:0 4px 10px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.14);
+  --back-bg:repeating-linear-gradient(45deg,#101319 0 6px,#1b212b 6px 12px),linear-gradient(180deg,#1b212b,#0a0d12);
+  --back-edge:rgba(210,224,244,.35);--back-inset:rgba(210,224,244,.2);
+  --back-glyph:rgba(224,234,250,.7);--back-sym:"\25C8";
+}
+[data-cards="emerald"]{
+  --face-bg:linear-gradient(160deg,#fffef8,#f4faf2 50%,#e4efe2);
+  --face-edge:#c9dcc8;--face-red:#d8383c;--face-blk:#13241a;
+  --face-shadow:0 4px 9px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.7);
+  --back-bg:repeating-linear-gradient(45deg,#0d4a34 0 5px,#136b48 5px 10px),linear-gradient(180deg,#0f7a4f,#062b1e);
+  --back-edge:rgba(232,190,99,.6);--back-inset:rgba(232,190,99,.3);
+  --back-glyph:rgba(245,214,137,.9);--back-sym:"\2756";
+}
+[data-cards="neon"]{
+  --face-bg:linear-gradient(160deg,#ffffff,#f6f2ff 50%,#e7dfff);
+  --face-edge:#cbbcf2;--face-red:#ff2d78;--face-blk:#241a4a;
+  --face-shadow:0 4px 9px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.75);
+  --back-bg:linear-gradient(145deg,#8a2bff 0%,#3b1ea8 45%,#00cfe8 100%);
+  --back-edge:rgba(180,255,255,.6);--back-inset:rgba(255,255,255,.28);
+  --back-glyph:rgba(255,255,255,.92);--back-sym:"\273A";
 }
 
 </style>
@@ -347,7 +762,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 <div id="screen-config" class="screen" hidden>
   <div class="wrap">
     <div class="brand-lockup">
-      <svg class="logo-mark" viewBox="0 0 140 108" role="img" aria-label="WSOP Poker Demo logo"><defs><linearGradient id="lgChip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6adff"/><stop offset="1" stop-color="#4752c4"/></linearGradient><radialGradient id="lgInner" cx=".5" cy=".34" r=".85"><stop offset="0" stop-color="#3b3b80"/><stop offset="1" stop-color="#14172a"/></radialGradient></defs><g transform="rotate(-17 70 52)"><rect x="46" y="6" width="36" height="52" rx="6" fill="#f6f0e2" stroke="#d9cba6" stroke-width="1.3"/><text x="52" y="22" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#15161a">A</text><text x="52" y="35" font-size="12" fill="#15161a">&#9824;</text></g><g transform="rotate(17 70 52)"><rect x="58" y="6" width="36" height="52" rx="6" fill="#f6f0e2" stroke="#d9cba6" stroke-width="1.3"/><text x="88" y="22" text-anchor="end" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#e0464a">A</text><text x="88" y="35" text-anchor="end" font-size="12" fill="#e0464a">&#9829;</text></g><g transform="translate(70 66)"><circle r="34" fill="url(#lgChip)" stroke="#f0d290" stroke-width="2.5"/><g fill="#f6f0e2"><g transform="rotate(0)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(60)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(120)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(180)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(240)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(300)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g></g><circle r="23" fill="url(#lgInner)" stroke="#f0d290" stroke-width="1.6"/><path d="M0 -16 C-11 -1 -21 4 -21 13 C-21 20 -13 22 -5 18 C-6 23 -9 25 -12 27 L12 27 C9 25 6 23 5 18 C13 22 21 20 21 13 C21 4 11 -1 0 -16 Z" fill="#f6f0e2"/></g></svg>
+      <svg class="logo-mark" viewBox="0 0 140 108" role="img" aria-label="WSOP Poker Demo logo"><g transform="rotate(-17 70 52)"><rect x="46" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="52" y="22" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#15161a">A</text><text x="52" y="35" font-size="12" fill="#15161a">&#9824;</text></g><g transform="rotate(17 70 52)"><rect x="58" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="88" y="22" text-anchor="end" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#e04a50">A</text><text x="88" y="35" text-anchor="end" font-size="12" fill="#e04a50">&#9829;</text></g><g transform="translate(70 66)"><circle r="34" fill="#5560d8" stroke="#e8be63" stroke-width="2.5"/><ellipse cx="0" cy="-13" rx="27" ry="16" fill="#8b95f5" opacity="0.5"/><g fill="#f8f4e9"><g transform="rotate(0)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(60)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(120)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(180)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(240)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(300)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g></g><circle r="23" fill="#1b2036" stroke="#e8be63" stroke-width="1.6"/><g transform="scale(0.72)"><path d="M0 -16 C-11 -1 -21 4 -21 13 C-21 20 -13 22 -5 18 C-6 23 -9 25 -12 27 L12 27 C9 25 6 23 5 18 C13 22 21 20 21 13 C21 4 11 -1 0 -16 Z" fill="#f8f4e9"/></g></g></svg>
       <div class="brand">WSOP <span class="thin">POKER</span> <span class="demo-tag">DEMO</span></div>
       <div class="chip-accent"></div>
     </div>
@@ -372,7 +787,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 <div id="screen-home" class="screen" hidden>
   <div class="wrap">
     <div class="brand-lockup">
-      <svg class="logo-mark" viewBox="0 0 140 108" role="img" aria-label="WSOP Poker Demo logo"><defs><linearGradient id="lgChip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6adff"/><stop offset="1" stop-color="#4752c4"/></linearGradient><radialGradient id="lgInner" cx=".5" cy=".34" r=".85"><stop offset="0" stop-color="#3b3b80"/><stop offset="1" stop-color="#14172a"/></radialGradient></defs><g transform="rotate(-17 70 52)"><rect x="46" y="6" width="36" height="52" rx="6" fill="#f6f0e2" stroke="#d9cba6" stroke-width="1.3"/><text x="52" y="22" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#15161a">A</text><text x="52" y="35" font-size="12" fill="#15161a">&#9824;</text></g><g transform="rotate(17 70 52)"><rect x="58" y="6" width="36" height="52" rx="6" fill="#f6f0e2" stroke="#d9cba6" stroke-width="1.3"/><text x="88" y="22" text-anchor="end" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#e0464a">A</text><text x="88" y="35" text-anchor="end" font-size="12" fill="#e0464a">&#9829;</text></g><g transform="translate(70 66)"><circle r="34" fill="url(#lgChip)" stroke="#f0d290" stroke-width="2.5"/><g fill="#f6f0e2"><g transform="rotate(0)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(60)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(120)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(180)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(240)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(300)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g></g><circle r="23" fill="url(#lgInner)" stroke="#f0d290" stroke-width="1.6"/><path d="M0 -16 C-11 -1 -21 4 -21 13 C-21 20 -13 22 -5 18 C-6 23 -9 25 -12 27 L12 27 C9 25 6 23 5 18 C13 22 21 20 21 13 C21 4 11 -1 0 -16 Z" fill="#f6f0e2"/></g></svg>
+      <svg class="logo-mark" viewBox="0 0 140 108" role="img" aria-label="WSOP Poker Demo logo"><g transform="rotate(-17 70 52)"><rect x="46" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="52" y="22" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#15161a">A</text><text x="52" y="35" font-size="12" fill="#15161a">&#9824;</text></g><g transform="rotate(17 70 52)"><rect x="58" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="88" y="22" text-anchor="end" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#e04a50">A</text><text x="88" y="35" text-anchor="end" font-size="12" fill="#e04a50">&#9829;</text></g><g transform="translate(70 66)"><circle r="34" fill="#5560d8" stroke="#e8be63" stroke-width="2.5"/><ellipse cx="0" cy="-13" rx="27" ry="16" fill="#8b95f5" opacity="0.5"/><g fill="#f8f4e9"><g transform="rotate(0)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(60)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(120)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(180)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(240)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(300)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g></g><circle r="23" fill="#1b2036" stroke="#e8be63" stroke-width="1.6"/><g transform="scale(0.72)"><path d="M0 -16 C-11 -1 -21 4 -21 13 C-21 20 -13 22 -5 18 C-6 23 -9 25 -12 27 L12 27 C9 25 6 23 5 18 C13 22 21 20 21 13 C21 4 11 -1 0 -16 Z" fill="#f8f4e9"/></g></g></svg>
       <div class="brand">WSOP <span class="thin">POKER</span> <span class="demo-tag">DEMO</span></div>
       <div class="chip-accent"></div>
       <div class="tagline">Late-night home game · No-Limit Hold'em</div>
@@ -1115,6 +1530,52 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
+  /* ---------- look & feel: each player picks their own room, table and deck ----
+     Purely local: the choice is saved on this device and changes nothing for
+     anyone else at the table. Applied as data-attributes on <html>, where the
+     stylesheet turns them into colour variables. */
+  var THEMES = {
+    bg: [
+      { id: "wood",    name: "Oak room",  sw: "linear-gradient(135deg,#7a5433,#4f3520 58%,#2a1c11)" },
+      { id: "noir",    name: "Noir",      sw: "linear-gradient(135deg,#39404d,#151920 58%,#07090d)" },
+      { id: "velvet",  name: "Velvet",    sw: "linear-gradient(135deg,#a82740,#63131f 58%,#1c060b)" },
+      { id: "emerald", name: "Emerald",   sw: "linear-gradient(135deg,#25805e,#0e3b2c 58%,#04120e)" },
+      { id: "neon",    name: "Neon city", sw: "linear-gradient(135deg,#8a2bff,#2a1a6e 50%,#00c8ff)" },
+      { id: "sunset",  name: "Sunset",    sw: "linear-gradient(135deg,#ffb257,#d6424a 55%,#3a1220)" }
+    ],
+    table: [
+      { id: "green",  name: "Casino green", sw: "linear-gradient(135deg,#2f9068,#15633f 60%,#2c2519)" },
+      { id: "blue",   name: "Royal blue",   sw: "linear-gradient(135deg,#3f86dd,#1d4f96 60%,#1f2739)" },
+      { id: "red",    name: "Ruby",         sw: "linear-gradient(135deg,#ac403e,#78191c 60%,#2b1815)" },
+      { id: "purple", name: "Amethyst",     sw: "linear-gradient(135deg,#7a55c2,#4a2688 60%,#251a35)" },
+      { id: "slate",  name: "Slate",        sw: "linear-gradient(135deg,#525b69,#2c333e 60%,#191d24)" },
+      { id: "teal",   name: "Lagoon",       sw: "linear-gradient(135deg,#31a7a2,#11706d 60%,#13262a)" }
+    ],
+    cards: [
+      { id: "classic", name: "Classic ivory", sw: "linear-gradient(135deg,#f8f4e9 50%,#3a3026 50%)" },
+      { id: "royal",   name: "Royal blue",    sw: "linear-gradient(135deg,#ffffff 50%,#1f47a8 50%)" },
+      { id: "crimson", name: "Crimson",       sw: "linear-gradient(135deg,#fdf1ee 50%,#b01c2b 50%)" },
+      { id: "noir",    name: "Black deck",    sw: "linear-gradient(135deg,#333a47 50%,#101319 50%)" },
+      { id: "emerald", name: "Emerald gold",  sw: "linear-gradient(135deg,#f4faf2 50%,#136b48 50%)" },
+      { id: "neon",    name: "Holo",          sw: "linear-gradient(135deg,#f6f2ff 50%,#8a2bff 75%,#00cfe8 100%)" }
+    ]
+  };
+  var THEME_KEY = { bg: "poker_bg", table: "poker_table", cards: "poker_cards" };
+  var THEME_DEF = { bg: "wood", table: "green", cards: "classic" };
+  function themeGet(kind) {
+    var v = lsGet(THEME_KEY[kind], THEME_DEF[kind]);
+    var known = THEMES[kind].some(function (t) { return t.id === v; });
+    return known ? v : THEME_DEF[kind];
+  }
+  function themeSet(kind, id) { lsSet(THEME_KEY[kind], id); applyThemes(); }
+  function applyThemes() {
+    var r = document.documentElement; if (!r) return;
+    r.setAttribute("data-bg", themeGet("bg"));
+    r.setAttribute("data-table", themeGet("table"));
+    r.setAttribute("data-cards", themeGet("cards"));
+  }
+  applyThemes();
+
   /* ---------- identity --------------------------------------------------- */
   var clientId = lsGet("poker_cid", null);
   if (!clientId) { clientId = "c_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); lsSet("poker_cid", clientId); }
@@ -1140,14 +1601,141 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   /* ---------- app state -------------------------------------------------- */
   var cur = {
     code: null, ref: null,
-    meta: null, seats: [], game: null, requests: {}, host: null, presence: {}, chat: []
+    meta: null, seats: [], game: null, requests: {}, host: null, presence: {}, chat: [], shown: {}
   };
   var amHost = false;
   var listeners = [];
   var processing = false, processingSince = 0, myReqAt = 0;
   var hostTimer = null, presenceTimer = null, uiTimer = null, lastBeat = 0;
   var lastCtlSig = null, lastLobbySig = null, lastBoardHand = -1, lastBoardN = 0, lastDealtHand = -1, dealAnim = false, lastBoardTeach = false;
+  var revealAnimHand = -1, revealAt = 0, flipReveal = false, winMap = {}, lastBets = {}, dealAt = 0;
+  var foldAt = {}, showAt = {}, foldHand = -1;   // when cards hit the table (drives the toss animation)
+  var SWEEP_MS = 620;                            // how long the dealer takes to clear the table
+  var sweepHand = -1, sweptHand = -1, sweepTimer = null;
+  var sndReady = false, sndLogN = 0, sndBoardN = 0, sndHandNo = -1, sndHandOver = true, sndMyTurn = false;
   function lock() { processing = true; processingSince = Date.now(); }
+
+  /* ---------- sound effects (synthesized with Web Audio — no files, no bandwidth) -------- */
+  /* ---------- audio: separate buses for sound effects and background music ---------- */
+  var Snd = (function () {
+    function clampVol(v) { v = parseInt(v, 10); if (isNaN(v)) v = 50; return Math.max(0, Math.min(100, v)); }
+    var legacyMuted = lsGet("poker_sound", "1") === "0";          // honours the old single mute flag
+    var ctx = null, sfxBus = null, musBus = null;
+    var sfxVol = legacyMuted ? 0 : clampVol(lsGet("poker_sfx", "70"));
+    var musVol = legacyMuted ? 0 : clampVol(lsGet("poker_music", "35"));
+    function ensure() {
+      if (ctx) return ctx;
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+        ctx = new AC();
+        sfxBus = ctx.createGain(); sfxBus.gain.value = sfxVol / 100 * 0.6; sfxBus.connect(ctx.destination);
+        musBus = ctx.createGain(); musBus.gain.value = musVol / 100 * 0.5; musBus.connect(ctx.destination);
+      } catch (e) { ctx = null; }
+      return ctx;
+    }
+    function T() { return ctx.currentTime; }
+    function blip(freq, start, dur, type, vol) {
+      if (!ctx) return; var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || "sine"; o.frequency.setValueAtTime(freq, start);
+      g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      o.connect(g).connect(sfxBus); o.start(start); o.stop(start + dur + 0.03);
+    }
+    function noise(start, dur, vol, ftype, freq, q) {
+      if (!ctx) return; var n = Math.max(1, Math.floor(ctx.sampleRate * dur)), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var s = ctx.createBufferSource(); s.buffer = buf;
+      var f = ctx.createBiquadFilter(); f.type = ftype || "bandpass"; f.frequency.value = freq || 2000; if (q) f.Q.value = q;
+      var g = ctx.createGain(); g.gain.setValueAtTime(vol, start); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      s.connect(f).connect(g).connect(sfxBus); s.start(start); s.stop(start + dur + 0.03);
+    }
+    return {
+      resume: function () { ensure(); if (ctx && ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} } },
+      ctx: function () { return ensure(); },
+      musicBus: function () { ensure(); return musBus; },
+      sfxVolume: function () { return sfxVol; },
+      musicVolume: function () { return musVol; },
+      setSfxVolume: function (v) { sfxVol = clampVol(v); lsSet("poker_sfx", String(sfxVol)); lsSet("poker_sound", "1"); if (sfxBus) sfxBus.gain.value = sfxVol / 100 * 0.6; },
+      setMusicVolume: function (v) { musVol = clampVol(v); lsSet("poker_music", String(musVol)); lsSet("poker_sound", "1"); if (musBus) musBus.gain.value = musVol / 100 * 0.5; },
+      deal: function () { if (!ensure()) return; noise(T(), 0.09, 0.35, "highpass", 1100); },
+      check: function () { if (!ensure()) return; blip(190, T(), 0.13, "sine", 0.55); },
+      chip: function () { if (!ensure()) return; var t = T(); noise(t, 0.045, 0.3, "bandpass", 2600, 3); noise(t + 0.05, 0.045, 0.24, "bandpass", 3100, 3); },
+      bet: function () { if (!ensure()) return; var t = T(); noise(t, 0.05, 0.34, "bandpass", 2300, 3); noise(t + 0.055, 0.05, 0.3, "bandpass", 2800, 3); noise(t + 0.11, 0.055, 0.26, "bandpass", 3300, 3); },
+      fold: function () { if (!ensure()) return; noise(T(), 0.22, 0.32, "lowpass", 1500); },
+      turn: function () { if (!ensure()) return; var t = T(); blip(660, t, 0.14, "sine", 0.42); blip(880, t + 0.12, 0.2, "sine", 0.42); },
+      win: function () { if (!ensure()) return; var t = T(); [523, 659, 784, 1047].forEach(function (f, i) { blip(f, t + i * 0.09, 0.3, "triangle", 0.42); }); },
+      tick: function () { if (!ensure()) return; blip(1250, T(), 0.05, "square", 0.13); },
+      allin: function () { if (!ensure()) return; var t = T(); noise(t, 0.3, 0.4, "bandpass", 2500, 2); [392, 523, 659].forEach(function (f, i) { blip(f, t + i * 0.07, 0.34, "sawtooth", 0.3); }); },
+      click: function () { if (!ensure()) return; blip(900, T(), 0.035, "square", 0.16); },
+      shuffle: function () { if (!ensure()) return; var t = T(); for (var i = 0; i < 5; i++) noise(t + i * 0.055, 0.06, 0.24, "highpass", 1400); },
+      sweep: function () { if (!ensure()) return; var t = T(); noise(t, 0.3, 0.26, "lowpass", 1800); noise(t + 0.1, 0.22, 0.16, "highpass", 900); }
+    };
+  })();
+
+  /* ---------- background music: an original chill loop, synthesized live (no audio files) ---------- */
+  var Mus = (function () {
+    var timer = null, nextBar = 0, barNo = 0, running = false;
+    var BPM = 76, BEAT = 60 / BPM, BAR = BEAT * 4;
+    // Am7 - Fmaj7 - Cmaj7 - G6
+    var CHORDS = [[220.00, 261.63, 329.63, 392.00], [174.61, 220.00, 261.63, 349.23],
+                  [261.63, 329.63, 392.00, 493.88], [196.00, 246.94, 293.66, 392.00]];
+    function c() { return Snd.ctx(); }
+    function pad(f, t, dur, vol) {
+      var a = c(), bus = Snd.musicBus(); if (!a || !bus) return;
+      var o1 = a.createOscillator(), o2 = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
+      o1.type = "sine"; o2.type = "triangle"; o1.frequency.value = f; o2.frequency.value = f * 1.004;
+      lp.type = "lowpass"; lp.frequency.value = 1500;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.9); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o1.connect(g); o2.connect(g); g.connect(lp).connect(bus);
+      o1.start(t); o2.start(t); o1.stop(t + dur + 0.1); o2.stop(t + dur + 0.1);
+    }
+    function pluck(f, t, vol) {
+      var a = c(), bus = Snd.musicBus(); if (!a || !bus) return;
+      var o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
+      o.type = "triangle"; o.frequency.value = f; lp.type = "lowpass"; lp.frequency.value = 2600;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      o.connect(g).connect(lp).connect(bus); o.start(t); o.stop(t + 0.6);
+    }
+    function kick(t) {
+      var a = c(), bus = Snd.musicBus(); if (!a || !bus) return;
+      var o = a.createOscillator(), g = a.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      o.connect(g).connect(bus); o.start(t); o.stop(t + 0.26);
+    }
+    function hat(t) {
+      var a = c(), bus = Snd.musicBus(); if (!a || !bus) return;
+      var n = Math.floor(a.sampleRate * 0.05), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var s = a.createBufferSource(); s.buffer = b;
+      var hp = a.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 7000;
+      var g = a.createGain(); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      s.connect(hp).connect(g).connect(bus); s.start(t); s.stop(t + 0.06);
+    }
+    function scheduleBar(t, i) {
+      var ch = CHORDS[i];
+      ch.slice(0, 3).forEach(function (f) { pad(f, t, BAR * 0.98, 0.075); });
+      for (var s = 0; s < 8; s++) {
+        if (s === 3 || s === 6) continue;                       // leave the loop some air
+        pluck(ch[(s + i) % ch.length] * (s > 4 ? 2 : 1), t + s * BEAT / 2, 0.05);
+      }
+      kick(t); kick(t + BEAT * 2);
+      for (var h = 0; h < 4; h++) hat(t + BEAT * h + BEAT / 2);
+    }
+    function pump() {
+      var a = c(); if (!a || !running) return;
+      while (nextBar < a.currentTime + 1.5) { scheduleBar(nextBar, barNo % CHORDS.length); nextBar += BAR; barNo++; }
+    }
+    return {
+      start: function () {
+        var a = c(); if (!a || running || Snd.musicVolume() <= 0) return;
+        running = true; nextBar = a.currentTime + 0.15; barNo = 0;
+        timer = setInterval(pump, 240); pump();
+      },
+      stop: function () { running = false; if (timer) clearInterval(timer); timer = null; },
+      isOn: function () { return running; },
+      sync: function () { if (Snd.musicVolume() > 0) this.start(); else this.stop(); }
+    };
+  })();
 
   /* ======================================================================
      SCREENS
@@ -1244,6 +1832,11 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     sub("game", function (v) { cur.game = hydrateGame(v); onData(); });
     sub("host", function (v) { cur.host = v; onData(); });
     sub("presence", function (v) { cur.presence = v || {}; onData(); });
+    sub("shown", function (v) {
+      var before = shownCount(); cur.shown = v || {};
+      if (shownCount() > before) revealAt = Date.now();   // animate the newly shown hand
+      onData();
+    });
     sub("requests", function (v) { cur.requests = v || {}; if (amHost) tryProcess(); });
     cur.ref.child("chat").limitToLast(40).on("value", function (s) {
       var arr = []; s.forEach(function (c) { arr.push(c.val()); }); cur.chat = arr; renderChat();
@@ -1251,7 +1844,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     listeners.push({ ref: cur.ref.child("chat"), ev: "value" });
 
     hostTimer = setInterval(hostTick, 500);   // responsive loop; heartbeat itself is throttled
-    uiTimer = setInterval(tickUI, 400);
+    uiTimer = setInterval(tickUI, 100);   // smooth countdown (anchored locally, so this is cheap)
 
     show("table");
     buildTableSkeleton();
@@ -1269,13 +1862,14 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   }
 
   function detachTable() {
+    clearTimeout(sweepTimer); sweepTimer = null; sweepHand = -1; sweptHand = -1;
     listeners.forEach(function (l) { try { l.ref.off(l.ev); } catch (e) {} });
     listeners = [];
     if (hostTimer) clearInterval(hostTimer); hostTimer = null;
     if (presenceTimer) clearInterval(presenceTimer); presenceTimer = null;
     if (uiTimer) clearInterval(uiTimer); uiTimer = null;
     if (cur.ref) { try { cur.ref.child("presence/" + clientId).remove(); } catch (e) {} }
-    cur = { code: null, ref: null, meta: null, seats: [], game: null, requests: {}, host: null, presence: {}, chat: [] };
+    cur = { code: null, ref: null, meta: null, seats: [], game: null, requests: {}, host: null, presence: {}, chat: [], shown: {} };
     amHost = false;
   }
 
@@ -1552,6 +2146,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 
     // clear old requests, write game + meta
     cur.ref.child("requests").remove();
+    cur.ref.child("shown").remove();      // last hand's show/muck choices
     cur.ref.child("game").set(g);
     cur.ref.child("meta").update({
       status: "playing", handNo: g.handNo,
@@ -1667,9 +2262,24 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
         '<div class="tbar-mid"><span id="tbl-name">Table</span>' +
           '<button id="btn-code" class="code-chip" title="Copy invite link"><span id="tbl-code">----</span> <span class="cp">copy link</span></button>' +
         '</div>' +
-        '<span class="tbar-spacer" aria-hidden="true"></span>' +
+        '<div class="tbar-tools">' +
+          '<button id="btn-theme" class="ghost theme-btn" title="Table, card &amp; background styles">🎨</button>' +
+          '<button id="btn-sound" class="ghost sound-btn" title="Music &amp; sound settings">🔊</button>' +
+        '</div>' +
       '</header>' +
       '<div id="teach-banner" class="teach-banner" hidden><span>◉ Promo active</span> <button id="btn-teach-off" class="linkbtn">turn off</button></div>' +
+      '<div id="sound-panel" class="sound-panel" hidden>' +
+        '<div class="sp-title">Audio</div>' +
+        '<label class="sp-row"><span>Music</span><input id="sp-music" type="range" min="0" max="100" step="5"><b id="sp-music-val"></b></label>' +
+        '<label class="sp-row"><span>Sound effects</span><input id="sp-sfx" type="range" min="0" max="100" step="5"><b id="sp-sfx-val"></b></label>' +
+      '</div>' +
+      '<div id="theme-panel" class="theme-panel" hidden>' +
+        '<div class="sp-title">Style</div>' +
+        '<div class="tp-group"><div class="tp-lab">Background</div><div class="tp-swatches" id="tp-bg"></div></div>' +
+        '<div class="tp-group"><div class="tp-lab">Table</div><div class="tp-swatches" id="tp-table"></div></div>' +
+        '<div class="tp-group"><div class="tp-lab">Cards</div><div class="tp-swatches" id="tp-cards"></div></div>' +
+        '<div class="tp-note" id="tp-note">Only changes what <b>you</b> see.</div>' +
+      '</div>' +
       '<main class="felt">' +
         '<div class="table-oval">' +
           '<div class="rail"></div>' +
@@ -1683,22 +2293,79 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
           '<div id="lobby-box" class="lobby-box" hidden></div>' +
         '</div>' +
       '</main>' +
+      '<div class="sidecol">' +
       '<section id="me-panel" class="me-panel"></section>' +
       '<section id="controls" class="controls" hidden></section>' +
-      '<div class="drawer">' +
+      '<div class="drawer" id="drawer">' +
         '<div class="drawer-tabs">' +
           '<button class="dtab active" data-tab="log">Hand history</button>' +
           '<button class="dtab" data-tab="chat">Chat</button>' +
+          '<button class="dtab-toggle" id="drawer-toggle" title="Show/hide">▲</button>' +
         '</div>' +
         '<div id="tab-log" class="tabpane"><div id="log" class="log"></div></div>' +
         '<div id="tab-chat" class="tabpane" hidden>' +
           '<div id="chat" class="chat"></div>' +
           '<form id="chat-form" class="chat-form"><input id="chat-input" maxlength="140" placeholder="Message the table…" autocomplete="off"><button class="gold sm">Send</button></form>' +
         '</div>' +
+      '</div>' +
       '</div>';
 
     $("btn-leave").onclick = leaveTable;
     $("btn-code").onclick = copyInvite;
+    (function () {
+      var sb = $("btn-sound"), panel = $("sound-panel"); if (!sb || !panel) return;
+      var mus = $("sp-music"), sfx = $("sp-sfx"), musV = $("sp-music-val"), sfxV = $("sp-sfx-val");
+      function icon() {
+        var off = Snd.musicVolume() <= 0 && Snd.sfxVolume() <= 0;
+        sb.textContent = off ? "🔇" : "🔊"; sb.classList.toggle("muted", off);
+      }
+      function sync() {
+        mus.value = Snd.musicVolume(); sfx.value = Snd.sfxVolume();
+        musV.textContent = Snd.musicVolume() + "%"; sfxV.textContent = Snd.sfxVolume() + "%"; icon();
+      }
+      sync();
+      sb.onclick = function (e) {
+        e.stopPropagation(); Snd.resume();
+        var tp = $("theme-panel"); if (tp) tp.hidden = true;        // one popover at a time
+        panel.hidden = !panel.hidden; if (!panel.hidden) sync();
+      };
+      panel.onclick = function (e) { e.stopPropagation(); };
+      document.addEventListener("click", function () { if (!panel.hidden) panel.hidden = true; });
+      mus.oninput = function () { Snd.resume(); Snd.setMusicVolume(mus.value); musV.textContent = Snd.musicVolume() + "%"; Mus.sync(); icon(); };
+      sfx.oninput = function () { Snd.resume(); Snd.setSfxVolume(sfx.value); sfxV.textContent = Snd.sfxVolume() + "%"; icon(); };
+      sfx.onchange = function () { if (Snd.sfxVolume() > 0) Snd.chip(); };
+    })();
+    // Style picker: background / table / deck, each saved on this device only.
+    (function () {
+      var tb = $("btn-theme"), panel = $("theme-panel"); if (!tb || !panel) return;
+      var note = $("tp-note");
+      function fill(kind, host) {
+        if (!host) return;
+        host.innerHTML = "";
+        var chosen = themeGet(kind);
+        THEMES[kind].forEach(function (t) {
+          var b = el("button", "sw-btn" + (t.id === chosen ? " on" : ""));
+          b.type = "button"; b.style.background = t.sw; b.title = t.name;
+          b.setAttribute("data-kind", kind); b.setAttribute("data-id", t.id); b.setAttribute("aria-label", t.name);
+          b.onclick = function (e) {
+            e.stopPropagation();
+            themeSet(kind, t.id); fill(kind, host);
+            if (note) note.innerHTML = esc(t.name) + " \u2014 only changes what <b>you</b> see.";
+            Snd.chip();
+          };
+          host.appendChild(b);
+        });
+      }
+      function fillAll() { fill("bg", $("tp-bg")); fill("table", $("tp-table")); fill("cards", $("tp-cards")); }
+      fillAll();
+      tb.onclick = function (e) {
+        e.stopPropagation(); Snd.resume();
+        var sp = $("sound-panel"); if (sp) sp.hidden = true;
+        panel.hidden = !panel.hidden; if (!panel.hidden) fillAll();
+      };
+      panel.onclick = function (e) { e.stopPropagation(); };
+      document.addEventListener("click", function () { if (!panel.hidden) panel.hidden = true; });
+    })();
     // Discreet trigger: tap the table name 4x quickly to open the private code prompt.
     (function () {
       var n = 0, t = 0;
@@ -1708,14 +2375,26 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
       });
     })();
     $("btn-teach-off").onclick = function () { setTeach(false); };
-    document.querySelectorAll(".dtab").forEach(function (b) {
-      b.onclick = function () {
-        document.querySelectorAll(".dtab").forEach(function (x) { x.classList.remove("active"); });
-        b.classList.add("active");
-        $("tab-log").hidden = b.dataset.tab !== "log";
-        $("tab-chat").hidden = b.dataset.tab !== "chat";
-      };
-    });
+    // Hand history / chat collapse so the table always fits one screen. Closed by default.
+    (function () {
+      var drawer = $("drawer"), tog = $("drawer-toggle");
+      function setTab(name) {
+        document.querySelectorAll(".dtab").forEach(function (x) { x.classList.toggle("active", x.dataset.tab === name); });
+        $("tab-log").hidden = name !== "log";
+        $("tab-chat").hidden = name !== "chat";
+      }
+      document.querySelectorAll(".dtab").forEach(function (b) {
+        b.onclick = function () {
+          var wasActive = b.classList.contains("active"), isOpen = drawer.classList.contains("open");
+          setTab(b.dataset.tab);
+          if (wasActive && isOpen) drawer.classList.remove("open");   // tap the open tab again to collapse
+          else drawer.classList.add("open");
+        };
+      });
+      if (tog) tog.onclick = function () { drawer.classList.toggle("open"); };
+      setTab("log");
+      if (window.innerWidth >= 900) drawer.classList.add("open");
+    })();
     $("chat-form").onsubmit = function (e) {
       e.preventDefault();
       var v = ($("chat-input").value || "").trim().slice(0, 140);
@@ -1749,12 +2428,12 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   }
   // position of seat k of n around the oval (percent of the oval box). k=0 = bottom (me).
   function seatXY(k, n) {
-    var cx = 50, cy = 47, rx = 38, ry = 36;
+    var cx = 50, cy = 46, rx = 38, ry = 34;
     var a = (90 + k * 360 / n) * Math.PI / 180;
     return { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a), a: a };
   }
   function betXY(k, n) {
-    var cx = 50, cy = 47, rx = 20, ry = 16;
+    var cx = 50, cy = 46, rx = 20, ry = 15;
     var a = (90 + k * 360 / n) * Math.PI / 180;
     return { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) };
   }
@@ -1771,14 +2450,92 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   function render() {
     if (!cur.ref) return;
     if (cur.meta) { $("tbl-name").textContent = cur.meta.name || "Table"; $("tbl-code").textContent = cur.code; }
-    dealAnim = !!(cur.game && !cur.game.handOver && cur.game.handNo !== lastDealtHand);
+    // A fresh hand deals the hole cards in. Like the end-of-hand reveal, this is held on a
+    // short time window rather than a single render: a new hand lands as a burst of updates
+    // (game → seats → meta) and a one-shot flag gets wiped before the cards ever paint.
+    if (cur.game && !cur.game.handOver) {
+      if (cur.game.handNo !== lastDealtHand) { lastDealtHand = cur.game.handNo; dealAt = Date.now(); }
+      dealAnim = (Date.now() - dealAt) < 800;
+    } else dealAnim = false;
+    // End-of-hand reveal + winner celebration. Hold the flip/float classes on for a short
+    // window so they survive the burst of re-renders that fire when a hand settles (game→seats→meta).
+    flipReveal = false; winMap = {};
+    if (cur.game && cur.game.handOver) {
+      winMap = winnersMap(cur.game);
+      if (cur.game.handNo !== revealAnimHand) { revealAnimHand = cur.game.handNo; revealAt = Date.now(); }
+      flipReveal = (Date.now() - revealAt) < 1200;
+      scheduleSweep();
+    }
     renderSeats();
     renderCenter();
+    applySweepClasses();
     renderMe();
     renderControls();
     renderLog();
     updateTeachUI();
-    if (cur.game) lastDealtHand = cur.game.handNo;
+    soundTick();
+  }
+
+  /* ---------- clearing the table ------------------------------------------
+     Just before the next hand is dealt, the dealer sweeps the board and every
+     hand still lying on the felt off to the side. The cards stay gone until the
+     new hand arrives, so there's no flash of the old board in between. */
+  function scheduleSweep() {
+    var g = cur.game;
+    if (!g || !g.handOver || g.handNo === sweepHand) return;
+    var at = (cur.meta && cur.meta.nextHandAt) || 0;
+    if (!at || eligibleSeatsCount() < 2) return;      // no next hand coming — leave the cards where they are
+    sweepHand = g.handNo;
+    clearTimeout(sweepTimer);
+    sweepTimer = setTimeout(function () {
+      var gg = cur.game;
+      if (!gg || !gg.handOver || gg.handNo !== sweepHand) return;
+      sweptHand = gg.handNo; Snd.sweep(); render();
+    }, Math.max(1500, at - serverNow() - SWEEP_MS - 140));
+  }
+  function applySweepClasses() {
+    var g = cur.game;
+    var on = !!(g && g.handOver && g.handNo === sweptHand);
+    var b = $("board"); if (b) b.classList.toggle("sweeping", on);
+    var sl = $("seats-layer"); if (sl) sl.classList.toggle("sweeping", on);
+  }
+
+  function winnersMap(g) {
+    var m = {};
+    if (g && g.result && g.result.pots) g.result.pots.forEach(function (pot) {
+      (pot.winners || []).forEach(function (w) { if (w && w.id != null) m[w.id] = (m[w.id] || 0) + (w.amount || 0); });
+    });
+    return m;
+  }
+
+  // Fire sound effects on state changes. Same events every client sees, so everyone hears the table.
+  function soundForLine(line) {
+    if (/all in/i.test(line)) Snd.allin();                 // checked first: "calls 20 (all in)"
+    else if (/auto-check|\bchecks?\b/.test(line)) Snd.check();
+    else if (/\bcalls?\b/.test(line)) Snd.chip();
+    else if (/\braises?\b|\bbets?\b/.test(line)) Snd.bet();
+    else if (/auto-fold|\bfolds?\b/.test(line)) Snd.fold();
+    // blinds / "shows" / "*** ***" / "wins" lines make no action sound (deal & win handled separately)
+  }
+  function soundTick() {
+    var g = cur.game;
+    if (!g) { sndReady = false; return; }
+    if (!sndReady) {   // set baselines on first sight of a table — don't blast the backlog
+      sndLogN = (g.log || []).length; sndBoardN = (g.board || []).length; sndHandNo = g.handNo;
+      sndHandOver = !!g.handOver; sndMyTurn = isMyTurn(); sndReady = true; return;
+    }
+    if (g.handNo !== sndHandNo) { sndHandNo = g.handNo; sndBoardN = (g.board || []).length; if (!g.handOver) Snd.shuffle(); }
+    var bN = (g.board || []).length;
+    if (bN > sndBoardN) Snd.deal();       // flop / turn / river dealt
+    sndBoardN = bN;
+    var logN = (g.log || []).length;
+    if (logN > sndLogN) { g.log.slice(sndLogN).forEach(soundForLine); sndLogN = logN; }
+    else if (logN < sndLogN) sndLogN = logN;   // new hand reset the log
+    if (g.handOver && !sndHandOver) Snd.win();
+    sndHandOver = !!g.handOver;
+    var myTurn = isMyTurn();
+    if (myTurn && !sndMyTurn) Snd.turn();
+    sndMyTurn = myTurn;
   }
 
   function bestNameFor(p) {
@@ -1824,18 +2581,18 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 
     var leaderId = instructorOn ? currentLeaderId() : null;
     var ord2 = orderedFromMe(g.players), n2 = ord2.length || 1;
+    var newBets = {};
+    if (g.handNo !== foldHand) { foldHand = g.handNo; foldAt = {}; showAt = {}; }   // fresh hand → clear the table
     ord2.forEach(function (o) {
       var p = o.p, xy = seatXY(o.k, n2);
+      if (p.folded && !foldAt[p.id]) foldAt[p.id] = Date.now();
+      else if (!p.folded && foldAt[p.id]) delete foldAt[p.id];
+      if (g.handOver && hasShown(p.id) && !showAt[p.id]) showAt[p.id] = Date.now();
       var isTurn = !g.handOver && g.toAct != null && g.players[g.toAct] && g.players[g.toAct].id === p.id;
       layer.appendChild(playerPod(p, xy, isTurn, leaderId));
-      if (bets && p.bet > 0) {
-        var b = betXY(o.k, n2);
-        var chip = el("div", "betchip");
-        chip.style.left = b.x + "%"; chip.style.top = b.y + "%";
-        chip.innerHTML = '<span class="chip-dot"></span>' + fmt(p.bet);
-        bets.appendChild(chip);
-      }
+      newBets[p.id] = p.bet || 0;
     });
+    lastBets = newBets;
   }
 
   function lobbyPod(p, xy) {
@@ -1859,25 +2616,49 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 
   function playerPod(p, xy, isTurn, leaderId) {
     var g = cur.game;
-    var pod = el("div", "pod" + (p.id === clientId ? " me" : ""));
-    if (p.folded) pod.classList.add("folded");
+    var mine = p.id === clientId;
+    var handEnd = !!g.handOver;
+    var wonAmt = winMap[p.id] || 0;
+    var pod = el("div", "pod" + (mine ? " me" : ""));
+    if (p.folded && !handEnd) pod.classList.add("folded");   // at hand end we reveal folders too, un-dimmed
     if (p.sittingOut) pod.classList.add("out");
     if (isTurn) pod.classList.add("active");
     if (instructorOn && leaderId === p.id) pod.classList.add("leader");
+    if (wonAmt > 0) pod.classList.add("winner");
     pod.style.left = xy.x + "%"; pod.style.top = xy.y + "%";
 
     // cards. Mine are large & in-flow above my avatar; opponents' peek from behind the avatar.
-    var mine = p.id === clientId;
-    var showdownReveal = (g.handOver && g.result && !g.result.byFold && wasContender(p));
-    var reveal = mine || instructorOn || showdownReveal;
-    var peek = instructorOn && !mine && !showdownReveal;   // promo peek → grayed, only I see it
+    // At the END of every hand, flip up ALL dealt-in players' cards (fold-wins included).
+    var volunteered = handEnd && hasShown(p.id);
+    var showdownReveal = handEnd && !!(g.result && !g.result.byFold) && wasContender(p);  // poker: showdown hands are shown
+    var mucked = !!p.folded && !p.sittingOut && !!p.hole;   // folded → cards thrown face down on the table
+    var tabled = (mucked || volunteered) && !p.sittingOut && !!p.hole;   // a hand you SHOW also goes on the table
+    var reveal, peek;
+    if (mucked) { reveal = volunteered || instructorOn; peek = instructorOn && !volunteered; }
+    else {
+      reveal = mine || instructorOn || showdownReveal || volunteered;
+      peek = instructorOn && !mine && !showdownReveal && !volunteered;
+    }
+    var handEndReveal = showdownReveal || volunteered;
+    var justFolded = mucked && !!foldAt[p.id] && (Date.now() - foldAt[p.id] < 700);
+    var justShown = volunteered && !!showAt[p.id] && (Date.now() - showAt[p.id] < 700);
     function buildCards(sizeCls) {
       var cards = el("div", "pod-cards" + (mine ? " mine" : ""));
-      if (p.hole && !p.sittingOut && !(p.folded && !mine)) {
+      if (p.hole && !p.sittingOut) {
         p.hole.forEach(function (c, i) {
           var ce = cardEl(c, reveal); if (!mine) ce.classList.add(sizeCls);
+          if (tabled) ce.classList.add("muck");
           if (peek) ce.classList.add("peek");
-          if (dealAnim) { ce.classList.add("deal"); ce.style.animationDelay = (i * 0.06) + "s"; }
+          if (dealAnim && !tabled) {                       // dealt from the middle out to this seat
+            ce.classList.add("deal");
+            ce.style.animationDelay = (i * 0.06) + "s";
+            ce.style.setProperty("--dx", Math.round((50 - xy.x) * 2.3) + "px");
+            ce.style.setProperty("--dy", Math.round((46 - xy.y) * 2.3) + "px");
+            ce.style.setProperty("--dr", (i ? 14 : -14) + "deg");
+          }
+          if (justFolded) { ce.classList.add("toss"); ce.style.animationDelay = (i * 0.07) + "s"; }
+          else if (justShown) { ce.classList.add(mucked ? "flip" : "toss"); ce.style.animationDelay = (i * 0.08) + "s"; }
+          else if (flipReveal && showdownReveal && !mine) { ce.classList.add("flip"); ce.style.animationDelay = (i * 0.08) + "s"; }
           cards.appendChild(ce);
         });
       } else if (!p.sittingOut && !p.folded) {
@@ -1906,11 +2687,35 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     plate.appendChild(sl);
     pod.appendChild(plate);
 
-    if (reveal && !p.folded && bestNameFor(p)) pod.appendChild(el("div", "pod-best", bestNameFor(p)));
+    if (reveal && !p.folded && bestNameFor(p)) pod.appendChild(el("div", "pod-best", shortHand(bestNameFor(p))));
     if (isTurn) pod.appendChild(el("div", "pod-secs", ""));
+    if (p.bet > 0) {                       // this player's live bet, pinned to their seat
+      var chip = el("div", "betchip pod-bet " + (xy.y < 33 ? "below" : "above"));
+      chip.innerHTML = '<span class="chip-dot"></span>' + fmt(p.bet);
+      if (lastBets[p.id] !== p.bet) chip.classList.add("pop");
+      pod.appendChild(chip);
+    }
+    if (wonAmt > 0 && flipReveal) pod.appendChild(el("div", "win-float", "+" + fmt(wonAmt)));  // one-shot rising chips
     return pod;
   }
 
+  // Each player decides for themselves whether to show at the end of a hand.
+  function shownCount() {
+    var g = cur.game; if (!g) return 0;
+    var h = cur.shown && cur.shown[g.handNo];
+    return h ? Object.keys(h).length : 0;
+  }
+  function hasShown(id) {
+    var g = cur.game; if (!g || !g.handOver) return false;   // nobody's cards go face up mid-hand, ever
+    var h = cur.shown && cur.shown[g.handNo];
+    return !!(h && h[id]);
+  }
+  function showMyCards() {
+    var g = cur.game; if (!g || !g.handOver || !cur.ref) return;
+    cur.ref.child("shown/" + g.handNo + "/" + clientId).set(true);
+    Snd.deal();
+  }
+  function shortHand(n) { return String(n || "").split(",")[0]; }   // "Two Pair, Jacks and Eights" -> "Two Pair"
   function wasContender(p) { return !p.folded && !p.sittingOut; }
   function metaHostId() { return cur.host ? cur.host.id : null; }
 
@@ -1954,9 +2759,12 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
         }
       }
     }
-    if (!g.handOver) { pot.hidden = false; pot.innerHTML = '<span class="pot-label">POT</span><span class="pot-amt">' + fmt(E.potTotal(g)) + '</span>'; }
-    else if (g.result) { pot.hidden = false; pot.innerHTML = '<span class="pot-label">RESULT</span><span class="pot-amt win">' + esc(resultText(g.result)) + '</span>'; }
-    else pot.hidden = true;
+    if (!g.handOver) { pot.hidden = false; pot.classList.remove("won"); pot.innerHTML = '<span class="pot-label">POT</span><span class="pot-amt">' + fmt(E.potTotal(g)) + '</span>'; }
+    else if (g.result) {
+      pot.hidden = false; pot.innerHTML = '<span class="pot-label">RESULT</span><span class="pot-amt win">' + esc(resultText(g.result)) + '</span>';
+      if (flipReveal) { pot.classList.remove("won"); void pot.offsetWidth; pot.classList.add("won"); }   // restart the pulse once
+    }
+    else { pot.hidden = true; pot.classList.remove("won"); }
     phase.textContent = g.handOver ? countdownText() : (({ preflop: "Pre-flop", flop: "Flop", turn: "Turn", river: "River" })[g.phase] || "");
   }
 
@@ -2022,7 +2830,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     var parts = [];
     res.pots.forEach(function (pot) {
       pot.winners.forEach(function (w) {
-        parts.push(w.name + " +" + fmt(w.amount) + (w.hand ? " (" + w.hand + ")" : ""));
+        parts.push(w.name + " +" + fmt(w.amount));
       });
     });
     return parts.join("  •  ");
@@ -2063,6 +2871,18 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
       var rebuy = el("button", "gold sm", "Rebuy " + fmt(cur.meta.startingStack));
       rebuy.onclick = doRebuy; util.appendChild(rebuy);
     }
+    var actionable = false;
+    if (g && g.handOver && me && me.hole && !me.sittingOut) {
+      var alreadyShown = hasShown(clientId);
+      var forced = !!(g.result && !g.result.byFold && wasContender(me));   // showdown already revealed them
+      if (!alreadyShown && !forced) {
+        var showBtn = el("button", "gold sm", "Show my cards");
+        showBtn.onclick = showMyCards; util.appendChild(showBtn); actionable = true;
+      } else if (alreadyShown) {
+        util.appendChild(el("span", "me-status", "Cards shown \u2713"));
+      }
+    }
+    panel.classList.toggle("has-action", actionable);
     var sit = el("button", "ghost sm", seat.sittingOut ? "Sit back in" : "Sit out next hand");
     sit.onclick = toggleSitOut; util.appendChild(sit);
     // when it's NOT my turn, show a subtle status so the panel isn't empty
@@ -2181,18 +3001,41 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   }
 
   /* ---------- ticking UI (timer bar + countdown) ------------------------- */
+  /* ---------- turn timer -------------------------------------------------
+     The countdown is anchored to a LOCAL monotonic clock, not to the server clock.
+     Reading `deadline - serverNow()` every tick made the timer jump up and down,
+     because Firebase keeps re-publishing serverTimeOffset and Math.ceil() flips a
+     whole second on a few ms of jitter. We anchor once per turn and only re-sync if
+     the server deadline really moved (host rewrote it). Seconds never tick upward. */
+  var tmrKey = null, tmrEndPerf = 0, tmrTotal = 0, tmrLastSecs = null;
+  function perfNow() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+  function syncTimer() {
+    var g = cur.game;
+    if (!g || g.handOver || !g.deadline) { tmrKey = null; tmrLastSecs = null; return false; }
+    var key = g.handNo + ":" + g.toAct;
+    var remainServer = Math.max(0, g.deadline - serverNow());
+    if (key !== tmrKey) {                                  // new turn → anchor fresh
+      tmrKey = key; tmrTotal = turnMs() || TURN_MS;
+      tmrEndPerf = perfNow() + remainServer; tmrLastSecs = null;
+    } else if (Math.abs(remainServer - (tmrEndPerf - perfNow())) > 1500) {
+      tmrEndPerf = perfNow() + remainServer;               // real drift only — ignore ms jitter
+    }
+    return true;
+  }
   function tickUI() {
     var g = cur.game;
-    if (g && !g.handOver && g.deadline) {
-      var remain = Math.max(0, g.deadline - serverNow());
-      var pct = Math.max(0, Math.min(100, (remain / turnMs()) * 100));
+    if (syncTimer()) {
+      var remain = Math.max(0, tmrEndPerf - perfNow());
+      var total = tmrTotal || TURN_MS;
+      var pct = Math.max(0, Math.min(100, (remain / total) * 100));
       var col = pct < 25 ? "#ff5a5a" : (pct < 50 ? "#ffb84d" : "#3ddc84");
-      var secs = Math.ceil(remain / 1000);
-      // bottom action-bar bar
+      var secs = Math.max(0, Math.ceil(remain / 1000));
+      if (tmrLastSecs !== null && secs > tmrLastSecs) secs = tmrLastSecs;   // monotonic: never count up
+      if (secs !== tmrLastSecs && secs <= 5 && secs > 0) Snd.tick();        // low-time heartbeat
+      tmrLastSecs = secs;
       var fill = document.querySelector(".timerfill");
       if (fill) { fill.style.width = pct + "%"; fill.style.background = col; }
-      var cs = document.querySelector(".ctl-secs"); if (cs) cs.textContent = secs + "s";
-      // circular ring around the active player's avatar
+      var cs = document.querySelector(".ctl-secs"); if (cs) { cs.textContent = secs + "s"; cs.style.color = col; }
       document.querySelectorAll(".ring-fill").forEach(function (f) {
         f.style.background = "conic-gradient(" + col + " " + pct + "%, rgba(255,255,255,.12) 0)";
       });
@@ -2253,6 +3096,14 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
      BOOT
      ====================================================================== */
   function boot() {
+    // Browsers block audio until the first user gesture — start the audio engine on the first tap/key.
+    function armAudio() { Snd.resume(); Mus.start(); document.removeEventListener("pointerdown", armAudio); document.removeEventListener("keydown", armAudio); }
+    document.addEventListener("pointerdown", armAudio); document.addEventListener("keydown", armAudio);
+    // Subtle tactile click on every button press.
+    document.addEventListener("pointerdown", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("button") : null;
+      if (b && !b.disabled) Snd.click();
+    }, true);
     initHome();
     initConfigScreen();
     if (!initFirebase()) { show("config"); return; }

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="google-site-verification" content="X0GxOOJUmFD70ufe1lV8R2ZqFOKqWdPnp-sXszoup08">
+<title>WSOP Poker Demo — Free Play-Money Texas Hold'em with Friends</title>
+<meta name="description" content="Play free No-Limit Texas Hold'em poker with your friends online. Create a private table, share the code, and everyone joins from their own phone — play money, just for fun.">
+<meta name="keywords" content="online poker, texas holdem, play money poker, poker with friends, free poker, private poker table, no limit holdem">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#16171b">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="WSOP Poker Demo">
+<meta property="og:title" content="WSOP Poker Demo — Free Poker with Friends">
+<meta property="og:description" content="Create a private Texas Hold'em table, share the code, and play with friends from your phones. Play money, just for fun.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2246%22%20fill%3D%22%235865f2%22%20stroke%3D%22%23f0d290%22%20stroke-width%3D%225%22%2F%3E%3Cg%20fill%3D%22%23f6f0e2%22%3E%3Cg%20transform%3D%22rotate(0%2050%2050)%22%3E%3Crect%20x%3D%2242%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%2213%22%20rx%3D%224%22%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%22rotate(60%2050%2050)%22%3E%3Crect%20x%3D%2242%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%2213%22%20rx%3D%224%22%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%22rotate(120%2050%2050)%22%3E%3Crect%20x%3D%2242%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%2213%22%20rx%3D%224%22%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%22rotate(180%2050%2050)%22%3E%3Crect%20x%3D%2242%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%2213%22%20rx%3D%224%22%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%22rotate(240%2050%2050)%22%3E%3Crect%20x%3D%2242%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%2213%22%20rx%3D%224%22%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%22rotate(300%2050%2050)%22%3E%3Crect%20x%3D%2242%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%2213%22%20rx%3D%224%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2230%22%20fill%3D%22%23171a2e%22%20stroke%3D%22%23f0d290%22%20stroke-width%3D%223.5%22%2F%3E%3Cpath%20d%3D%22M50%2031%20C41%2043%2031%2047%2031%2056%20C31%2062%2038%2064%2045%2061%20C44%2066%2041%2069%2038%2071%20L62%2071%20C59%2069%2056%2066%2055%2061%20C62%2064%2069%2062%2069%2056%20C69%2047%2059%2043%2050%2031%20Z%22%20fill%3D%22%23f6f0e2%22%2F%3E%3C%2Fsvg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Oswald:wght@500;600;700&display=swap">
+
+<!-- Firebase (Google) Realtime Database SDK -->
+<script src="https://www.gstatic.com/firebasejs/FIREBASE_VER/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/FIREBASE_VER/firebase-database-compat.js"></script>
+
+<script>
+/* ============================================================================
+   ⬇⬇⬇   PASTE YOUR FIREBASE CONFIG INSIDE THE BRACES BELOW   ⬇⬇⬇
+   Get it from: Firebase console → ⚙ Project settings → "Your apps" → Web app.
+   Until it's filled in, the app shows a setup screen with click-by-click steps.
+   ========================================================================== */
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCmgMuQGnBxZfwSS-ZsidJyuuy7b5sfZEs",
+  authDomain: "wsop-poker-3902d.firebaseapp.com",
+  databaseURL: "https://wsop-poker-3902d-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "wsop-poker-3902d",
+  storageBucket: "wsop-poker-3902d.firebasestorage.app",
+  messagingSenderId: "973088478006",
+  appId: "1:973088478006:web:e89871447621d71556d997"
+};
+
+/* ---------------------------------------------------------------------------
+   YOUR PRIVATE TEACHING CODE is stored ONLY as a one-way hash, so the code
+   itself never appears in this file. Tap 🎓 at a table and type your code to
+   reveal everyone's cards (only you can). Ask Claude anytime to change it.
+   --------------------------------------------------------------------------- */
+window.INSTRUCTOR_CODE_HASH = "__CODE_HASH__";
+</script>
+
+<style>
+/*STYLES*/
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP ============ -->
+<div id="screen-config" class="screen" hidden>
+  <div class="wrap">
+    <div class="brand-lockup">
+      <svg class="logo-mark" viewBox="0 0 140 108" role="img" aria-label="WSOP Poker Demo logo"><g transform="rotate(-17 70 52)"><rect x="46" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="52" y="22" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#15161a">A</text><text x="52" y="35" font-size="12" fill="#15161a">&#9824;</text></g><g transform="rotate(17 70 52)"><rect x="58" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="88" y="22" text-anchor="end" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#e04a50">A</text><text x="88" y="35" text-anchor="end" font-size="12" fill="#e04a50">&#9829;</text></g><g transform="translate(70 66)"><circle r="34" fill="#5560d8" stroke="#e8be63" stroke-width="2.5"/><ellipse cx="0" cy="-13" rx="27" ry="16" fill="#8b95f5" opacity="0.5"/><g fill="#f8f4e9"><g transform="rotate(0)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(60)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(120)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(180)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(240)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(300)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g></g><circle r="23" fill="#1b2036" stroke="#e8be63" stroke-width="1.6"/><g transform="scale(0.72)"><path d="M0 -16 C-11 -1 -21 4 -21 13 C-21 20 -13 22 -5 18 C-6 23 -9 25 -12 27 L12 27 C9 25 6 23 5 18 C13 22 21 20 21 13 C21 4 11 -1 0 -16 Z" fill="#f8f4e9"/></g></g></svg>
+      <div class="brand">WSOP <span class="thin">POKER</span> <span class="demo-tag">DEMO</span></div>
+      <div class="chip-accent"></div>
+    </div>
+    <div class="panel" style="padding:18px">
+      <h2 style="margin:.1em 0 .3em">One-time setup</h2>
+      <p style="color:var(--muted);font-size:13.5px;margin:.2em 0 0">This poker room runs on your own free Google Firebase backend. You only do this once.</p>
+      <ol class="setup-steps">
+        <li>Open <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> and click <b>Add project</b> (give it any name, you can skip Analytics).</li>
+        <li>In the left menu choose <b>Build → Realtime Database</b>, click <b>Create Database</b>, pick a location, and select <b>Start in test mode</b>.</li>
+        <li>Click the gear ⚙ → <b>Project settings</b>. Under <b>Your apps</b>, click the web icon <code>&lt;/&gt;</code> and register an app (any nickname).</li>
+        <li>Copy the whole <code>firebaseConfig = { … }</code> it shows and paste it below.</li>
+      </ol>
+      <textarea id="cfg-input" class="inp" placeholder="const firebaseConfig = {&#10;  apiKey: &quot;...&quot;,&#10;  databaseURL: &quot;https://...firebaseio.com&quot;,&#10;  ...&#10;};"></textarea>
+      <div id="cfg-msg" class="hint" style="margin:8px 0;min-height:16px"></div>
+      <button id="cfg-save" class="gold big">Save &amp; start playing</button>
+      <p class="hint" style="margin-top:12px">Pasting here saves it on <i>this</i> device so you can test right away. To let friends join, put the same config into the file's config block before you host it — see the setup notes that came with this file.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HOME ============ -->
+<div id="screen-home" class="screen" hidden>
+  <div class="wrap">
+    <div class="brand-lockup">
+      <svg class="logo-mark" viewBox="0 0 140 108" role="img" aria-label="WSOP Poker Demo logo"><g transform="rotate(-17 70 52)"><rect x="46" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="52" y="22" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#15161a">A</text><text x="52" y="35" font-size="12" fill="#15161a">&#9824;</text></g><g transform="rotate(17 70 52)"><rect x="58" y="6" width="36" height="52" rx="6" fill="#f8f4e9" stroke="#cbbf9f" stroke-width="1.3"/><text x="88" y="22" text-anchor="end" font-family="Oswald,sans-serif" font-weight="700" font-size="15" fill="#e04a50">A</text><text x="88" y="35" text-anchor="end" font-size="12" fill="#e04a50">&#9829;</text></g><g transform="translate(70 66)"><circle r="34" fill="#5560d8" stroke="#e8be63" stroke-width="2.5"/><ellipse cx="0" cy="-13" rx="27" ry="16" fill="#8b95f5" opacity="0.5"/><g fill="#f8f4e9"><g transform="rotate(0)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(60)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(120)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(180)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(240)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g><g transform="rotate(300)"><rect x="-9" y="-35.5" width="18" height="13" rx="4"/></g></g><circle r="23" fill="#1b2036" stroke="#e8be63" stroke-width="1.6"/><g transform="scale(0.72)"><path d="M0 -16 C-11 -1 -21 4 -21 13 C-21 20 -13 22 -5 18 C-6 23 -9 25 -12 27 L12 27 C9 25 6 23 5 18 C13 22 21 20 21 13 C21 4 11 -1 0 -16 Z" fill="#f8f4e9"/></g></g></svg>
+      <div class="brand">WSOP <span class="thin">POKER</span> <span class="demo-tag">DEMO</span></div>
+      <div class="chip-accent"></div>
+      <div class="tagline">Late-night home game · No-Limit Hold'em</div>
+    </div>
+    <div class="fake-badge">🪙 Play money only — nothing real, just for fun</div>
+    <div class="panel" style="padding:18px">
+      <div class="field">
+        <label for="home-name">Username</label>
+        <input id="home-name" type="text" maxlength="16" placeholder="username" autocomplete="off">
+      </div>
+      <button id="btn-create" class="gold big">Create a table</button>
+      <div class="divider">OR JOIN A FRIEND</div>
+      <div class="field">
+        <label for="home-code">Table code</label>
+        <input id="home-code" type="text" maxlength="6" placeholder="ABCD" autocapitalize="characters" autocomplete="off" style="letter-spacing:5px;text-transform:uppercase;font-family:Oswald,sans-serif;font-size:20px">
+      </div>
+      <button id="btn-goto-join" class="ghost" style="width:100%">Join table</button>
+      <div id="home-msg" class="msg" hidden></div>
+    </div>
+    <p class="hint" style="text-align:center;margin-top:16px">Create a table, share the code, and everyone plays from their own phone.</p>
+  </div>
+</div>
+
+<!-- ============ TABLE (built by app.js) ============ -->
+<div id="screen-table" class="screen" hidden></div>
+
+<script>
+/*ENGINE*/
+</script>
+<script>
+/*APP*/
+</script>
+</body>
+</html>

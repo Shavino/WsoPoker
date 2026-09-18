@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "tables": {
+      "$code": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
