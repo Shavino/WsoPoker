@@ -1,6 +1,8 @@
 // The 🎨 style picker: three sets of looks (background / table / cards), each with
 // at least five options, applied instantly and remembered on this device only.
 const path = require("path");
+const fs = require("fs");
+const http = require("http");
 const E = require("./engine.js");
 let chromium; try { chromium = require("playwright").chromium; } catch (e) { chromium = require("playwright-core").chromium; }
 const dir = __dirname, now = Date.now();
@@ -25,7 +27,14 @@ const seed = {
 
 const SHOTS = [["noir", "slate", "noir"], ["neon", "purple", "neon"], ["velvet", "red", "crimson"]];
 
+function serve() {                 // a real origin, so localStorage behaves like it does live
+  const page = fs.readFileSync(path.join(__dirname, "preview.html"));
+  const server = http.createServer((req, res) => { res.writeHead(200, { "Content-Type": "text/html" }); res.end(page); });
+  return new Promise(r => server.listen(0, "127.0.0.1", () => r({ server, url: "http://127.0.0.1:" + server.address().port + "/preview.html#TEST" })));
+}
+
 (async () => {
+  const site = await serve();
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 } });
   await ctx.addInitScript((s) => {
@@ -36,7 +45,7 @@ const SHOTS = [["noir", "slate", "noir"], ["neon", "purple", "neon"], ["velvet",
   const errs = [];
   page.on("pageerror", e => errs.push("pageerror: " + e.message));
   page.on("console", m => { if (m.type() === "error" && !/ERR_|Failed to load resource/.test(m.text())) errs.push("console: " + m.text()); });
-  await page.goto("file://" + dir + "/preview.html#TEST", { waitUntil: "load" });
+  await page.goto(site.url, { waitUntil: "load" });
   await page.waitForTimeout(1200);
 
   // the button sits next to the sound button, and opens a panel with three groups
@@ -74,19 +83,20 @@ const SHOTS = [["noir", "slate", "noir"], ["neon", "purple", "neon"], ["velvet",
     return out;
   });
 
-  // pick one of each, then reload: the choice has to stick
+  // pick one of each, then open the table fresh: the choice has to stick
   const chosen = await page.evaluate(() => {
     const pick = (kind, id) => document.querySelector('#tp-' + kind + ' .sw-btn[data-id="' + id + '"]').click();
     pick("bg", "velvet"); pick("table", "purple"); pick("cards", "noir");
     return { bg: localStorage.getItem("poker_bg"), table: localStorage.getItem("poker_table"), cards: localStorage.getItem("poker_cards") };
   });
-  // Chromium batches localStorage commits (up to ~5s) after a burst of writes, and a
-  // headless reload can tear the renderer down before that lands. Give it room: this is a
-  // harness quirk, not the app — a real player clicks a swatch and keeps playing.
-  await page.waitForTimeout(6000);
-  await page.reload({ waitUntil: "load" });
-  await page.waitForTimeout(1000);
-  const afterReload = await page.evaluate(() => {
+  // A second page in the same browser context — i.e. the player opening the table again.
+  // (Deliberately not page.reload(): headless Chromium batches localStorage commits for
+  // several seconds after a burst of writes and can drop them when it tears the renderer
+  // down, which is a harness quirk, not something a real player would ever hit.)
+  const page2 = await ctx.newPage();
+  await page2.goto(site.url, { waitUntil: "load" });
+  await page2.waitForTimeout(900);
+  const afterReload = await page2.evaluate(() => {
     const r = document.documentElement;
     return { bg: r.getAttribute("data-bg"), table: r.getAttribute("data-table"), cards: r.getAttribute("data-cards"),
       raw: JSON.stringify(Object.keys(localStorage).sort().map(k => k + "=" + localStorage.getItem(k))),
@@ -95,17 +105,24 @@ const SHOTS = [["noir", "slate", "noir"], ["neon", "purple", "neon"], ["velvet",
       backDark: /rgb\(16, 19, 25\)|rgb\(27, 33, 43\)/.test(getComputedStyle(document.querySelector(".pod:not(.me) .card.back") || document.body).backgroundImage) };
   });
 
-  // a look at three of the combinations
+  // a look at three of the combinations, each in a fresh browser
   for (const [bg, table, cards] of SHOTS) {
-    await page.evaluate(([b, t, c]) => {
-      localStorage.setItem("poker_bg", b); localStorage.setItem("poker_table", t); localStorage.setItem("poker_cards", c);
-    }, [bg, table, cards]);
-    await page.waitForTimeout(900);
-    await page.reload({ waitUntil: "load" });
-    await page.waitForTimeout(900);
-    await page.screenshot({ path: path.join(dir, "shots", "style-" + bg + "-" + table + "-" + cards + ".png") });
+    const c2 = await browser.newContext({ viewport: { width: 1440, height: 860 } });
+    await c2.addInitScript(([s, b, t, c]) => {
+      try {
+        localStorage.setItem("poker_cid", "cB"); localStorage.setItem("poker_name", "apollo"); localStorage.setItem("poker_sound", "0");
+        localStorage.setItem("poker_bg", b); localStorage.setItem("poker_table", t); localStorage.setItem("poker_cards", c);
+      } catch (e) {}
+      window.__SEED_TREE__ = { tables: { TEST: JSON.parse(s) } };
+    }, [JSON.stringify(seed), bg, table, cards]);
+    const p2 = await c2.newPage();
+    await p2.goto(site.url, { waitUntil: "load" });
+    await p2.waitForTimeout(1100);
+    await p2.screenshot({ path: path.join(dir, "shots", "style-" + bg + "-" + table + "-" + cards + ".png") });
+    await c2.close();
   }
   await browser.close();
+  site.server.close();
 
   console.log("picker: button=" + open.hasBtn + " beside sound=" + open.nextToSound + " opens=" + open.panelOpen + " (sound panel closed=" + open.soundClosed + ")");
   console.log("options: backgrounds=" + open.bg + " tables=" + open.table + " cards=" + open.cards);

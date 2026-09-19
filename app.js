@@ -11,11 +11,39 @@
      ---------------------------------------------------------------------- */
   var FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
 
-  // Teaching-mode secret. To keep it OUT of the page source, only a one-way HASH
-  // of the code is stored (window.INSTRUCTOR_CODE_HASH). Plaintext still works if set.
+  // Promo secret. The code is never in the page — only PBKDF2-SHA-256(code, salt, 250k)
+  // and its salt, which are useless without the code. Each guess costs the attacker the
+  // same 250k rounds it costs us, so brute force against an 80-bit code is hopeless.
+  // (cyrb53 below is NOT used for this any more — it only picks avatars from a player id.)
   function cyrb53(str, seed) { seed = seed || 0; var h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed; for (var i = 0, c; i < str.length; i++) { c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909); return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(); }
-  function codeHash(s) { return cyrb53(String(s == null ? "" : s).trim().toUpperCase()); }
-  var INSTRUCTOR_CODE_HASH = window.INSTRUCTOR_CODE ? codeHash(window.INSTRUCTOR_CODE) : String(window.INSTRUCTOR_CODE_HASH || "");
+  var PROMO_KDF = window.PROMO_KDF || null;
+  function b64ToBytes(b64) {
+    var bin = atob(String(b64 || "")), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function bytesToB64(buf) {
+    var b = new Uint8Array(buf), s = "";
+    for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return btoa(s);
+  }
+  function sameSecret(a, b) {              // length-independent, no early exit
+    a = String(a); b = String(b);
+    var diff = a.length ^ b.length;
+    for (var i = 0; i < a.length && i < b.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  }
+  function verifyPromo(code) {
+    var subtle = window.crypto && (window.crypto.subtle || window.crypto.webkitSubtle);
+    if (!PROMO_KDF || !PROMO_KDF.k || !subtle || !window.TextEncoder) return Promise.resolve(false);
+    var bytes = new TextEncoder().encode(String(code == null ? "" : code).trim().toUpperCase());
+    return subtle.importKey("raw", bytes, { name: "PBKDF2" }, false, ["deriveBits"])
+      .then(function (key) {
+        return subtle.deriveBits({ name: "PBKDF2", salt: b64ToBytes(PROMO_KDF.s), iterations: PROMO_KDF.i || 250000, hash: "SHA-256" }, key, 256);
+      })
+      .then(function (bits) { return sameSecret(bytesToB64(bits), PROMO_KDF.k); })
+      .catch(function () { return false; });
+  }
 
   var MAX_SEATS = 8;
   var TURN_MS = 40000;          // time to act before auto check/fold
@@ -67,8 +95,10 @@
       { id: "neon",    name: "Holo",          sw: "linear-gradient(135deg,#f6f2ff 50%,#8a2bff 75%,#00cfe8 100%)" }
     ]
   };
-  var THEME_KEY = { bg: "poker_bg", table: "poker_table", cards: "poker_cards" };
-  var THEME_DEF = { bg: "wood", table: "green", cards: "classic" };
+  var MOTIONS = [{ id: "full", name: "Full" }, { id: "low", name: "Reduced" }];
+  var THEME_KEY = { bg: "poker_bg", table: "poker_table", cards: "poker_cards", motion: "poker_motion" };
+  var THEME_DEF = { bg: "wood", table: "green", cards: "classic", motion: "full" };
+  THEMES.motion = MOTIONS;
   function themeGet(kind) {
     var v = lsGet(THEME_KEY[kind], THEME_DEF[kind]);
     var known = THEMES[kind].some(function (t) { return t.id === v; });
@@ -80,6 +110,7 @@
     r.setAttribute("data-bg", themeGet("bg"));
     r.setAttribute("data-table", themeGet("table"));
     r.setAttribute("data-cards", themeGet("cards"));
+    r.setAttribute("data-motion", themeGet("motion"));
   }
   applyThemes();
 
@@ -117,8 +148,13 @@
   var lastCtlSig = null, lastLobbySig = null, lastBoardHand = -1, lastBoardN = 0, lastDealtHand = -1, dealAnim = false, lastBoardTeach = false;
   var revealAnimHand = -1, revealAt = 0, flipReveal = false, winMap = {}, lastBets = {}, dealAt = 0;
   var foldAt = {}, showAt = {}, foldHand = -1;   // when cards hit the table (drives the toss animation)
-  var SWEEP_MS = 620;                            // how long the dealer takes to clear the table
+  var actSig = {}, actAt = {};                   // what each player last did, and when it appeared
+  var DEAL_STEP = 0.09;                          // seconds between cards — a dealer's rhythm
+  var SWEEP_MS = 700;                            // how long the dealer takes to clear the table
+  var SHUFFLE_MS = 1100;                         // …and to riffle the deck afterwards
   var sweepHand = -1, sweptHand = -1, sweepTimer = null;
+  var shuffleTimer = null, shuffleOffTimer = null, lastShuffleAt = 0;
+  var sweepAt = 0, sweepMeasured = false;        // when the table started clearing
   var sndReady = false, sndLogN = 0, sndBoardN = 0, sndHandNo = -1, sndHandOver = true, sndMyTurn = false;
   function lock() { processing = true; processingSince = Date.now(); }
 
@@ -173,7 +209,20 @@
       tick: function () { if (!ensure()) return; blip(1250, T(), 0.05, "square", 0.13); },
       allin: function () { if (!ensure()) return; var t = T(); noise(t, 0.3, 0.4, "bandpass", 2500, 2); [392, 523, 659].forEach(function (f, i) { blip(f, t + i * 0.07, 0.34, "sawtooth", 0.3); }); },
       click: function () { if (!ensure()) return; blip(900, T(), 0.035, "square", 0.16); },
-      shuffle: function () { if (!ensure()) return; var t = T(); for (var i = 0; i < 5; i++) noise(t + i * 0.055, 0.06, 0.24, "highpass", 1400); },
+      // a real riffle: two halves interleaving, the bridge cascade, then squaring the deck
+      shuffle: function () {
+        if (!ensure()) return; var t = T(), i;
+        for (i = 0; i < 16; i++) noise(t + i * 0.022 + Math.random() * 0.007, 0.03, 0.17, "bandpass", 2300 + Math.random() * 1700, 2);
+        noise(t + 0.43, 0.2, 0.2, "highpass", 1000);
+        for (i = 0; i < 10; i++) noise(t + 0.62 + i * 0.021, 0.03, 0.13, "bandpass", 2000 + Math.random() * 1300, 2);
+        noise(t + 0.9, 0.13, 0.22, "lowpass", 1500);
+      },
+      // one slide per card as the hand is dealt around the table
+      dealRound: function (n, step) {
+        if (!ensure()) return; var t = T();
+        n = Math.max(2, Math.min(24, n || 4));
+        for (var i = 0; i < n; i++) noise(t + i * (step || 0.09), 0.07, 0.3, "highpass", 1100 + (i % 2) * 300);
+      },
       sweep: function () { if (!ensure()) return; var t = T(); noise(t, 0.3, 0.26, "lowpass", 1800); noise(t + 0.1, 0.22, 0.16, "highpass", 900); }
     };
   })();
@@ -369,7 +418,8 @@
   }
 
   function detachTable() {
-    clearTimeout(sweepTimer); sweepTimer = null; sweepHand = -1; sweptHand = -1;
+    clearTimeout(sweepTimer); clearTimeout(shuffleTimer); clearTimeout(shuffleOffTimer);
+    sweepTimer = shuffleTimer = shuffleOffTimer = null; sweepHand = -1; sweptHand = -1;
     listeners.forEach(function (l) { try { l.ref.off(l.ev); } catch (e) {} });
     listeners = [];
     if (hostTimer) clearInterval(hostTimer); hostTimer = null;
@@ -514,12 +564,21 @@
   }
 
   // ---- host lobby controls ----
+  // Real names, not "Bot 3 🤖". A table full of labels is what made the history read like a
+  // server log; the seat itself says who's a bot (the ring on the avatar and the BOT tag).
+  var BOT_NAMES = ["Mason", "Ivy", "Duke", "Nadia", "Rex", "Pilar", "Sully", "Odette",
+                   "Cash", "Vera", "Tito", "Greta", "Bishop", "Lola", "Rocco", "Hana"];
+  function freeBotName(seats) {
+    var taken = {};
+    (seats || []).forEach(function (s) { if (s && s.name) taken[String(s.name).toLowerCase()] = 1; });
+    for (var i = 0; i < BOT_NAMES.length; i++) if (!taken[BOT_NAMES[i].toLowerCase()]) return BOT_NAMES[i];
+    return "Player " + (Math.floor(Math.random() * 90) + 10);
+  }
   function hostAddBot() {
     var seats = normSeats(cur.seats);
-    var n = 0; seats.forEach(function (s) { if (s && s.isBot) n++; });
     for (var i = 0; i < seats.length; i++) {
       if (!seats[i]) {
-        seats[i] = { id: "bot_" + Date.now().toString(36) + "_" + i, name: n === 0 ? "Dealer 🤖" : "Bot " + (n + 1) + " 🤖", stack: cur.meta.startingStack, sittingOut: false, isBot: true, joinedAt: serverNow() };
+        seats[i] = { id: "bot_" + Date.now().toString(36) + "_" + i, name: freeBotName(seats), stack: cur.meta.startingStack, sittingOut: false, isBot: true, joinedAt: serverNow() };
         cur.ref.child("seats").set(seats);
         return;
       }
@@ -785,6 +844,7 @@
         '<div class="tp-group"><div class="tp-lab">Background</div><div class="tp-swatches" id="tp-bg"></div></div>' +
         '<div class="tp-group"><div class="tp-lab">Table</div><div class="tp-swatches" id="tp-table"></div></div>' +
         '<div class="tp-group"><div class="tp-lab">Cards</div><div class="tp-swatches" id="tp-cards"></div></div>' +
+        '<div class="tp-group"><div class="tp-lab">Animations</div><div class="tp-seg" id="tp-motion"></div></div>' +
         '<div class="tp-note" id="tp-note">Only changes what <b>you</b> see.</div>' +
       '</div>' +
       '<main class="felt">' +
@@ -793,6 +853,7 @@
           '<div class="center">' +
             '<div id="pot" class="pot"></div>' +
             '<div id="board" class="board"></div>' +
+            '<div id="deck" class="deck" hidden><i class="dk"></i><i class="dk"></i><i class="dk"></i><i class="dk"></i></div>' +
             '<div id="phase" class="phase"></div>' +
           '</div>' +
           '<div id="bets-layer" class="bets-layer"></div>' +
@@ -805,7 +866,7 @@
       '<section id="controls" class="controls" hidden></section>' +
       '<div class="drawer" id="drawer">' +
         '<div class="drawer-tabs">' +
-          '<button class="dtab active" data-tab="log">Hand history</button>' +
+          '<button class="dtab active" data-tab="log">History</button>' +
           '<button class="dtab" data-tab="chat">Chat</button>' +
           '<button class="dtab-toggle" id="drawer-toggle" title="Show/hide">▲</button>' +
         '</div>' +
@@ -863,7 +924,18 @@
           host.appendChild(b);
         });
       }
-      function fillAll() { fill("bg", $("tp-bg")); fill("table", $("tp-table")); fill("cards", $("tp-cards")); }
+      function fillMotion() {
+        var host = $("tp-motion"); if (!host) return;
+        host.innerHTML = "";
+        var chosen = themeGet("motion");
+        MOTIONS.forEach(function (m) {
+          var b = el("button", "seg-btn" + (m.id === chosen ? " on" : ""), m.name);
+          b.type = "button"; b.setAttribute("data-id", m.id);
+          b.onclick = function (e) { e.stopPropagation(); themeSet("motion", m.id); fillMotion(); Snd.click(); };
+          host.appendChild(b);
+        });
+      }
+      function fillAll() { fill("bg", $("tp-bg")); fill("table", $("tp-table")); fill("cards", $("tp-cards")); fillMotion(); }
       fillAll();
       tb.onclick = function (e) {
         e.stopPropagation(); Snd.resume();
@@ -898,9 +970,12 @@
           else drawer.classList.add("open");
         };
       });
-      if (tog) tog.onclick = function () { drawer.classList.toggle("open"); };
+      function remember() { lsSet("poker_drawer", drawer.classList.contains("open") ? "1" : "0"); }
+      document.querySelectorAll(".dtab").forEach(function (b) { b.addEventListener("click", remember); });
+      if (tog) tog.onclick = function () { drawer.classList.toggle("open"); remember(); };
       setTab("log");
-      if (window.innerWidth >= 900) drawer.classList.add("open");
+      var pref = lsGet("poker_drawer", "");
+      if (pref === "1" || (pref === "" && window.innerWidth >= 900)) drawer.classList.add("open");
     })();
     $("chat-form").onsubmit = function (e) {
       e.preventDefault();
@@ -913,6 +988,7 @@
   }
 
   var SUIT = { s: "♠", h: "♥", d: "♦", c: "♣" };
+  var ACT_CLASS = { "FOLD": "a-fold", "CHECK": "a-check", "CALL": "a-call", "BET": "a-raise", "RAISE": "a-raise", "ALL IN": "a-allin" };
   function cardEl(card, faceUp) {
     var d = el("div", "card" + (faceUp ? "" : " back"));
     if (faceUp && card) {
@@ -962,7 +1038,7 @@
     // (game → seats → meta) and a one-shot flag gets wiped before the cards ever paint.
     if (cur.game && !cur.game.handOver) {
       if (cur.game.handNo !== lastDealtHand) { lastDealtHand = cur.game.handNo; dealAt = Date.now(); }
-      dealAnim = (Date.now() - dealAt) < 800;
+      dealAnim = (Date.now() - dealAt) < dealWindowMs();
     } else dealAnim = false;
     // End-of-hand reveal + winner celebration. Hold the flip/float classes on for a short
     // window so they survive the burst of re-renders that fire when a hand settles (game→seats→meta).
@@ -976,11 +1052,67 @@
     renderSeats();
     renderCenter();
     applySweepClasses();
+    applyCardOrigins();
     renderMe();
     renderControls();
     renderLog();
     updateTeachUI();
     soundTick();
+  }
+
+  /* ---------- the dealer's deck -------------------------------------------
+     Cards are dealt OUT of the stack on the right of the table and swept back
+     INTO it. Both are measured from the deck's real position on screen, so they
+     stay right at any window size and on any table style. */
+  function deckAnchor() {
+    var d = $("deck");
+    if (!d || d.hidden) return null;
+    var r = d.getBoundingClientRect();
+    if (!r.width) return null;
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+  function setOrigin(el, a, xp, yp) {
+    var r = el.getBoundingClientRect();
+    el.style.setProperty(xp, Math.round(a.x - (r.left + r.width / 2)) + "px");
+    el.style.setProperty(yp, Math.round(a.y - (r.top + r.height / 2)) + "px");
+  }
+  function applyCardOrigins() {
+    var a = deckAnchor(); if (!a) return;
+    var dealt = document.querySelectorAll("#seats-layer .card.deal, #board .card.deal");
+    if (dealt.length) {
+      // zero the offsets first: the card is already sitting on its 0% keyframe, and
+      // measuring it there would fold the old offset into the new one. Rotation and
+      // scale are about the centre, so they don't move the point we measure.
+      dealt.forEach(function (c) { c.style.setProperty("--dx", "0px"); c.style.setProperty("--dy", "0px"); });
+      dealt.forEach(function (c) { setOrigin(c, a, "--dx", "--dy"); });
+    }
+    var g = cur.game;
+    if (g && g.handOver && g.handNo === sweptHand) {
+      var elapsed = (Date.now() - sweepAt) / 1000;
+      // The board keeps its elements across renders, so it's measured once — while the cards
+      // are still at rest — and then left alone to run.
+      if (!sweepMeasured) {
+        document.querySelectorAll("#board .card").forEach(function (c) { setOrigin(c, a, "--sx", "--sy"); });
+        sweepMeasured = true;
+      }
+      // The seats are rebuilt on EVERY render, and a brand-new element starts its animation
+      // from the top — which is why the hands were flying back to the deck again and again
+      // whenever anything else updated mid-sweep (a heartbeat, someone showing their cards).
+      // Anchoring the delay to when the sweep began makes a fresh element pick the animation
+      // up where it already was, and land finished once the sweep is over.
+      document.querySelectorAll("#seats-layer .pod-cards .card").forEach(function (c) {
+        setOrigin(c, a, "--sx", "--sy");
+        c.style.animationDelay = (-elapsed).toFixed(2) + "s";
+      });
+    }
+  }
+  function startShuffle() {
+    var d = $("deck"); if (!d || d.hidden) return;
+    lastShuffleAt = Date.now();
+    Snd.shuffle();
+    d.classList.remove("shuffling"); void d.offsetWidth; d.classList.add("shuffling");
+    clearTimeout(shuffleOffTimer);
+    shuffleOffTimer = setTimeout(function () { d.classList.remove("shuffling"); }, SHUFFLE_MS + 60);
   }
 
   /* ---------- clearing the table ------------------------------------------
@@ -993,18 +1125,43 @@
     var at = (cur.meta && cur.meta.nextHandAt) || 0;
     if (!at || eligibleSeatsCount() < 2) return;      // no next hand coming — leave the cards where they are
     sweepHand = g.handNo;
-    clearTimeout(sweepTimer);
+    clearTimeout(sweepTimer); clearTimeout(shuffleTimer);
     sweepTimer = setTimeout(function () {
       var gg = cur.game;
       if (!gg || !gg.handOver || gg.handNo !== sweepHand) return;
-      sweptHand = gg.handNo; Snd.sweep(); render();
-    }, Math.max(1500, at - serverNow() - SWEEP_MS - 140));
+      sweptHand = gg.handNo; sweepAt = Date.now(); sweepMeasured = false;
+      Snd.sweep(); render();                                        // cards go back to the deck…
+      shuffleTimer = setTimeout(startShuffle, SWEEP_MS - 40);       // …then it riffles
+    }, Math.max(1200, at - serverNow() - SWEEP_MS - SHUFFLE_MS - 160));
   }
   function applySweepClasses() {
     var g = cur.game;
     var on = !!(g && g.handOver && g.handNo === sweptHand);
     var b = $("board"); if (b) b.classList.toggle("sweeping", on);
     var sl = $("seats-layer"); if (sl) sl.classList.toggle("sweeping", on);
+  }
+
+  /* ---------- dealing, one card at a time --------------------------------
+     A real deal goes round the table: one card to each player starting left of
+     the button, then round again. Each card gets its own start time, and the
+     delay is measured from when the hand began — so it can be NEGATIVE, meaning
+     "this card is already in flight". That's what makes the sequence survive the
+     burst of re-renders a new hand arrives in: a re-render picks the animation up
+     where it is instead of snapping it back to the start. */
+  function dealSeatRank(p) {
+    var g = cur.game; if (!g || !g.players) return 0;
+    var n = g.players.length || 1;
+    var b = (typeof g.button === "number") ? g.button : 0;
+    return ((p.seat != null ? p.seat : 0) - b - 1 + n * 2) % n;
+  }
+  function dealDelay(p, cardIndex) {
+    var n = (cur.game && cur.game.players ? cur.game.players.length : 2) || 2;
+    var plan = (cardIndex * n + dealSeatRank(p)) * DEAL_STEP;
+    return (plan - (Date.now() - dealAt) / 1000).toFixed(2) + "s";
+  }
+  function dealWindowMs() {
+    var n = (cur.game && cur.game.players ? cur.game.players.length : 2) || 2;
+    return Math.round((2 * n * DEAL_STEP + 0.7) * 1000);
   }
 
   function winnersMap(g) {
@@ -1031,7 +1188,14 @@
       sndLogN = (g.log || []).length; sndBoardN = (g.board || []).length; sndHandNo = g.handNo;
       sndHandOver = !!g.handOver; sndMyTurn = isMyTurn(); sndReady = true; return;
     }
-    if (g.handNo !== sndHandNo) { sndHandNo = g.handNo; sndBoardN = (g.board || []).length; if (!g.handOver) Snd.shuffle(); }
+    if (g.handNo !== sndHandNo) {
+      sndHandNo = g.handNo; sndBoardN = (g.board || []).length;
+      if (!g.handOver) {
+        if (Date.now() - lastShuffleAt > 2600) { lastShuffleAt = Date.now(); Snd.shuffle(); }   // first hand: shuffle first
+        var dealt = (g.players || []).length;
+        Snd.dealRound(dealt * 2, DEAL_STEP);
+      }
+    }
     var bN = (g.board || []).length;
     if (bN > sndBoardN) Snd.deal();       // flop / turn / river dealt
     sndBoardN = bN;
@@ -1069,9 +1233,9 @@
 
   // One unified seat renderer: everyone (including me) gets a pod around the oval.
   function renderSeats() {
-    var layer = $("seats-layer"), bets = $("bets-layer");
+    var layer = $("seats-layer");
     if (!layer) return;
-    layer.innerHTML = ""; if (bets) bets.innerHTML = "";
+    layer.innerHTML = "";
     var g = cur.game;
 
     if (!g || !g.players) {
@@ -1088,18 +1252,42 @@
 
     var leaderId = instructorOn ? currentLeaderId() : null;
     var ord2 = orderedFromMe(g.players), n2 = ord2.length || 1;
-    var newBets = {};
-    if (g.handNo !== foldHand) { foldHand = g.handNo; foldAt = {}; showAt = {}; }   // fresh hand → clear the table
+    var newBets = {}, collected = [];
+    if (g.handNo !== foldHand) { foldHand = g.handNo; foldAt = {}; showAt = {}; actSig = {}; actAt = {}; }   // fresh hand
     ord2.forEach(function (o) {
       var p = o.p, xy = seatXY(o.k, n2);
       if (p.folded && !foldAt[p.id]) foldAt[p.id] = Date.now();
       else if (!p.folded && foldAt[p.id]) delete foldAt[p.id];
       if (g.handOver && hasShown(p.id) && !showAt[p.id]) showAt[p.id] = Date.now();
+      if (!p.act) delete actSig[p.id];                 // street cleared → the next action is new
       var isTurn = !g.handOver && g.toAct != null && g.players[g.toAct] && g.players[g.toAct].id === p.id;
       layer.appendChild(playerPod(p, xy, isTurn, leaderId));
       newBets[p.id] = p.bet || 0;
+      // start where the bet chip actually sat (above or below the seat), not on the avatar
+      if (lastBets[p.id] > 0 && !(p.bet > 0)) collected.push({ x: xy.x, y: xy.y + (xy.y < 33 ? 7 : -7), amount: lastBets[p.id] });
     });
     lastBets = newBets;
+    if (collected.length) flyChipsToPot(collected);      // the dealer pulls the bets into the middle
+  }
+
+  // Bets don't just vanish when a street ends — they slide into the middle.
+  function flyChipsToPot(chips) {
+    var layer = $("bets-layer"), oval = document.querySelector(".table-oval"), pot = $("pot");
+    if (!layer || !oval || !pot || pot.hidden) return;
+    var orect = oval.getBoundingClientRect(), prect = pot.getBoundingClientRect();
+    if (!orect.width || !prect.width) return;
+    var px = prect.left + prect.width / 2 - orect.left, py = prect.top + prect.height / 2 - orect.top;
+    chips.forEach(function (c, i) {
+      var e = el("div", "betchip fly");
+      e.innerHTML = '<span class="chip-dot"></span>' + fmt(c.amount);
+      e.style.left = c.x + "%"; e.style.top = c.y + "%";
+      e.style.animationDelay = (i * 0.04) + "s";
+      e.style.setProperty("--tx", Math.round(px - orect.width * c.x / 100) + "px");
+      e.style.setProperty("--ty", Math.round(py - orect.height * c.y / 100) + "px");
+      layer.appendChild(e);
+      setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 700 + i * 40);
+    });
+    Snd.chip();
   }
 
   function lobbyPod(p, xy) {
@@ -1118,6 +1306,7 @@
     var a = el("div", "avatar" + (av.bot ? " bot" : ""));
     a.style.background = "linear-gradient(145deg," + av.grad[0] + "," + av.grad[1] + ")";
     a.appendChild(el("span", "av-emo", av.emo));
+    if (av.bot) a.appendChild(el("span", "bot-tag", "BOT"));
     return a;
   }
 
@@ -1156,15 +1345,13 @@
           var ce = cardEl(c, reveal); if (!mine) ce.classList.add(sizeCls);
           if (tabled) ce.classList.add("muck");
           if (peek) ce.classList.add("peek");
-          if (dealAnim && !tabled) {                       // dealt from the middle out to this seat
+          if (dealAnim && !tabled) {                       // off the deck, in dealing order
             ce.classList.add("deal");
-            ce.style.animationDelay = (i * 0.06) + "s";
-            ce.style.setProperty("--dx", Math.round((50 - xy.x) * 2.3) + "px");
-            ce.style.setProperty("--dy", Math.round((46 - xy.y) * 2.3) + "px");
+            ce.style.animationDelay = dealDelay(p, i);
             ce.style.setProperty("--dr", (i ? 14 : -14) + "deg");
           }
-          if (justFolded) { ce.classList.add("toss"); ce.style.animationDelay = (i * 0.07) + "s"; }
-          else if (justShown) { ce.classList.add(mucked ? "flip" : "toss"); ce.style.animationDelay = (i * 0.08) + "s"; }
+          if (justFolded) { ce.classList.add("toss"); ce.style.animationDelay = (i * 0.07 - (Date.now() - foldAt[p.id]) / 1000).toFixed(2) + "s"; }
+          else if (justShown) { ce.classList.add(mucked ? "flip" : "toss"); ce.style.animationDelay = (i * 0.08 - (Date.now() - showAt[p.id]) / 1000).toFixed(2) + "s"; }
           else if (flipReveal && showdownReveal && !mine) { ce.classList.add("flip"); ce.style.animationDelay = (i * 0.08) + "s"; }
           cards.appendChild(ce);
         });
@@ -1194,6 +1381,15 @@
     plate.appendChild(sl);
     pod.appendChild(plate);
 
+    // What this player just did, shown on their seat until the street clears — the way a
+    // real table tells you, instead of a line of text scrolling past in a log.
+    if (p.act && p.act.t && !handEnd && ACT_CLASS[p.act.t]) {
+      var sig = p.act.t + ":" + (p.act.a || 0) + ":" + (g.phase || "");
+      if (actSig[p.id] !== sig) { actSig[p.id] = sig; actAt[p.id] = Date.now(); }
+      var badge = el("div", "act-badge " + ACT_CLASS[p.act.t] + ((Date.now() - actAt[p.id]) < 420 ? " pop" : ""));
+      badge.textContent = p.act.a ? p.act.t + " " + fmt(p.act.a) : p.act.t;
+      plate.appendChild(badge);
+    }
     if (reveal && !p.folded && bestNameFor(p)) pod.appendChild(el("div", "pod-best", shortHand(bestNameFor(p))));
     if (isTurn) pod.appendChild(el("div", "pod-secs", ""));
     if (p.bet > 0) {                       // this player's live bet, pinned to their seat
@@ -1242,6 +1438,7 @@
   function renderCenter() {
     var g = cur.game;
     var board = $("board"), pot = $("pot"), phase = $("phase"), lobby = $("lobby-box");
+    var deck = $("deck"); if (deck) deck.hidden = !g;
     if (!g) {                                   // pre-start lobby view
       board.hidden = true; pot.hidden = true; phase.hidden = true; lobby.hidden = false;
       renderLobbyControls();
@@ -1492,10 +1689,31 @@
     }
   }
 
+  /* ---------- the hand log -------------------------------------------------
+     The engine writes the standard PokerStars export format ("*** FLOP *** [8c 7h Kc]")
+     because that's what tracking software reads. Nobody reads it at the table, so here it
+     gets turned into something human: streets become dividers, cards become little cards. */
+  function cardChip(c) {
+    var r = c[0] === "T" ? "10" : c[0], su = c[1];
+    return '<i class="lc ' + (su === "h" || su === "d" ? "r" : "b") + '">' + r + SUIT[su] + "</i>";
+  }
+  function withCardChips(line) {
+    return line.replace(/\[([^\]]+)\]/g, function (_, inner) {
+      var parts = inner.trim().split(/\s+/);
+      if (!parts.every(function (c) { return /^[2-9TJQKA][shdc]$/.test(c); })) return "[" + inner + "]";
+      return '<span class="lcards">' + parts.map(cardChip).join("") + "</span>";
+    });
+  }
   function renderLog() {
     var g = cur.game; var box = $("log"); if (!box) return;
     var lines = (g && g.log) ? g.log.slice(-40) : [];
-    box.innerHTML = lines.map(function (l) { return '<div class="logline">' + esc(l) + '</div>'; }).join("");
+    box.innerHTML = lines.map(function (l, i) {
+      var street = /^\*\*\* ([A-Z]+) \*\*\*(.*)$/.exec(l);
+      if (street) return '<div class="logline street"><b>' + esc(street[1].toLowerCase()) + "</b>" + withCardChips(esc(street[2])) + "</div>";
+      var cls = /\bwins\b/.test(l) ? " win" : (/posts (small|big) blind/.test(l) ? " dim" : "");
+      if (i === lines.length - 1) cls += " last";
+      return '<div class="logline' + cls + '">' + withCardChips(esc(l)).replace(" \u2014 ", " \u00b7 ") + "</div>";
+    }).join("");
     box.scrollTop = box.scrollHeight;
   }
 
@@ -1586,12 +1804,18 @@
   }
 
   /* ---------- teaching mode --------------------------------------------- */
+  var codeBusy = false;
   function teachPrompt() {
     if (instructorOn) { setTeach(false); return; }
+    if (codeBusy) return;                       // one attempt at a time
     var code = prompt("Enter promo code:");
     if (code == null) return;
-    if (INSTRUCTOR_CODE_HASH && codeHash(code) === INSTRUCTOR_CODE_HASH) { setTeach(true); toast("Promo code applied ✓"); }
-    else toast("Invalid code.");
+    codeBusy = true;
+    verifyPromo(code).then(function (ok) {
+      codeBusy = false;
+      if (ok) { setTeach(true); toast("Promo code applied \u2713"); }
+      else toast("Invalid code.");
+    });
   }
   function setTeach(on) { instructorOn = on; lsSet("poker_teach", on ? "1" : "0"); updateTeachUI(); render(); }
   function updateTeachUI() {

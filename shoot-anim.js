@@ -1,6 +1,10 @@
-// Cards arriving on the table (hole cards + flop/turn/river) and cards leaving it
-// when the dealer clears the felt before the next hand.
+// The dealer's deck: cards come off it when they're dealt (hole cards + flop/turn/river),
+// get swept back into it when the hand ends, and it riffles before the next deal.
 // Also re-checks the rule that nothing goes face up until the hand is over.
+//
+// The geometry is checked by pausing each card's own animation at its first frame (for a
+// deal) or its last (for a sweep) and asking where the card actually is: it has to be on
+// the deck. That tests what a player sees, not what the code intended.
 const path = require("path");
 const E = require("./engine.js");
 let chromium; try { chromium = require("playwright").chromium; } catch (e) { chromium = require("playwright-core").chromium; }
@@ -51,19 +55,46 @@ const errs = [];
   await a.page.waitForSelector("#board .card:not(.slot)", { timeout: 8000 });   // catch them mid-flight
   const arriving = await a.page.evaluate(() => {
     const anim = (e) => getComputedStyle(e).animationName;
+    const mid = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+    const deck = document.getElementById("deck");
     const board = [...document.querySelectorAll("#board .card:not(.slot)")];
     const mine = [...document.querySelectorAll(".pod.me .pod-cards .card")];
     const opp = [...document.querySelectorAll(".pod:not(.me) .pod-cards .card")];
     const dirOf = (e) => e.style.getPropertyValue("--dx") + "/" + e.style.getPropertyValue("--dy");
+    // freeze every dealt card on its first frame — that frame should sit on the deck
+    const atDeck = (cards) => {
+      const d = mid(deck);
+      return cards.map(c => {
+        // cards are dealt on a stagger, and a card already in flight carries a NEGATIVE
+        // animation-delay — so zero the delay first, otherwise "frame 0" is wherever that
+        // card had already got to rather than the deck.
+        c.style.animationDelay = "0s";
+        const an = c.getAnimations()[0];
+        if (!an) return 1e9;
+        an.pause(); an.currentTime = 0;
+        const m = mid(c);
+        return Math.round(Math.hypot(m.x - d.x, m.y - d.y));
+      });
+    };
+    // read the stagger BEFORE atDeck(), which zeroes the delays to measure geometry
+    const staggered = new Set(board.map(c => getComputedStyle(c).animationDelay)).size === board.length;
+    const holeStagger = new Set(mine.concat(opp).map(c => getComputedStyle(c).animationDelay)).size;
+    const boardGap = atDeck(board), holeGap = atDeck(mine), oppGap = atDeck(opp);
+    const worst = (a) => a.length ? Math.max.apply(null, a) : 1e9;
+    const dr = deck.getBoundingClientRect(), br = document.getElementById("board").getBoundingClientRect();
     return {
       boardCards: board.length,
       boardFliesIn: board.length > 0 && board.every(c => anim(c) === "boardIn"),
-      boardStaggered: new Set(board.map(c => getComputedStyle(c).animationDelay)).size === board.length,
+      boardStaggered: staggered,
+      holeStagger: holeStagger,
       holeDeals: mine.length > 0 && mine.every(c => anim(c) === "dealIn"),
-      // hole cards fly out of the middle, so opposite seats get opposite directions
       myDir: mine.map(dirOf).join(" "),
       oppDirs: new Set(opp.map(dirOf)).size,
-      perspective: getComputedStyle(document.getElementById("board")).perspective
+      perspective: getComputedStyle(document.getElementById("board")).perspective,
+      deckShown: !deck.hidden && dr.width > 0,
+      deckLayers: deck.querySelectorAll(".dk").length,
+      deckRightOfBoard: dr.left >= br.left + br.width * 0.5,
+      worstDealGap: Math.max(worst(boardGap), worst(holeGap), worst(oppGap))
     };
   });
   await a.page.waitForTimeout(190);              // mid-flight: cards on their way from the deck
@@ -96,21 +127,62 @@ const errs = [];
   }));
   // wait for the dealer to start clearing the felt (just before the next deal)
   await b.page.waitForFunction(() => document.getElementById("board").classList.contains("sweeping"), null, { timeout: 15000, polling: 60 });
+  // Hammer the table with updates while it's clearing. Every one of them rebuilds the seats,
+  // and a rebuilt card used to start the sweep again from the top — which is what made the
+  // hands fly back to the deck over and over. Once a card has gone, it has to stay gone.
+  const replay = await b.page.evaluate(async () => {
+    const peak = [];
+    for (let i = 0; i < 7; i++) {
+      firebase.database().ref("tables/TEST/presence/ghost").set({ name: "g", ts: Date.now() });   // forces a render
+      await new Promise(r => setTimeout(r, 110));
+      const cards = [...document.querySelectorAll("#seats-layer .pod-cards .card")];
+      peak.push({
+        t: i * 110,
+        maxOpacity: cards.length ? Math.max.apply(null, cards.map(c => parseFloat(getComputedStyle(c).opacity))) : 0,
+        anchored: cards.length > 0 && cards.every(c => parseFloat(c.style.animationDelay) <= 0)
+      });
+    }
+    return peak;
+  });
   const during = await b.page.evaluate(() => {
     const board = [...document.querySelectorAll("#board .card:not(.slot)")];
     const pods = [...document.querySelectorAll("#seats-layer .pod-cards .card")];
+    const deck = document.getElementById("deck");
+    const mid = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+    const d = mid(deck);
+    // freeze every swept card on its LAST frame — it should have landed on the deck
+    const landed = [...board, ...pods].map(c => {
+      const an = c.getAnimations()[0];
+      if (!an) return 1e9;
+      an.pause(); an.currentTime = an.effect.getComputedTiming().endTime;
+      const m = mid(c);
+      return Math.round(Math.hypot(m.x - d.x, m.y - d.y));
+    });
     return {
       boardSweeping: document.getElementById("board").classList.contains("sweeping"),
       seatsSweeping: document.getElementById("seats-layer").classList.contains("sweeping"),
       boardAnim: board.length > 0 && board.every(c => getComputedStyle(c).animationName === "sweepOff"),
       podAnim: pods.length > 0 && pods.every(c => getComputedStyle(c).animationName === "sweepOff"),
-      fading: board.length ? parseFloat(getComputedStyle(board[board.length - 1]).opacity) : 1
+      cards: landed.length,
+      worstLandGap: landed.length ? Math.max.apply(null, landed) : 1e9
     };
   });
-  await b.page.waitForTimeout(300);               // mid-sweep, cards on their way off the felt
   await b.page.screenshot({ path: path.join(dir, "shots", "anim-sweep.png") });
+  // …and then the deck riffles, with its own sound, before the next hand
+  const shuffled = await b.page.waitForFunction(() => document.getElementById("deck").classList.contains("shuffling"),
+    null, { timeout: 8000, polling: 50 }).then(() => true).catch(() => false);
+  const riffle = await b.page.evaluate(() => {
+    const d = document.getElementById("deck");
+    return { anim: getComputedStyle(d).animationName,
+      layersMoving: [...d.querySelectorAll(".dk")].filter(x => getComputedStyle(x).animationName !== "none").length };
+  });
   await b.page.waitForFunction(() => window.__MOCK_TREE__().tables.TEST.game.handNo > 7, null, { timeout: 15000, polling: 100 });
-  await b.page.waitForTimeout(250);               // new hand dealt → felt is live again
+  // wait for the new hand to actually finish dealing rather than guessing at a delay
+  const settled = await b.page.waitForFunction(() => {
+    const mine = [...document.querySelectorAll(".pod.me .pod-cards .card")];
+    return !document.getElementById("board").classList.contains("sweeping") &&
+      mine.length === 2 && mine.every(c => parseFloat(getComputedStyle(c).opacity) > 0.9);
+  }, null, { timeout: 10000, polling: 100 }).then(() => true).catch(() => false);
   const after = await b.page.evaluate(() => ({
     handNo: window.__MOCK_TREE__().tables.TEST.game.handNo,
     sweeping: document.getElementById("board").classList.contains("sweeping"),
@@ -120,21 +192,31 @@ const errs = [];
   await b.ctx.close();
   await browser.close();
 
+  console.log("deck: shown=" + arriving.deckShown + " layers=" + arriving.deckLayers + " right of the board=" + arriving.deckRightOfBoard);
   console.log("arriving: board=" + arriving.boardCards + " flies in=" + arriving.boardFliesIn + " staggered=" + arriving.boardStaggered +
-    " | hole cards deal=" + arriving.holeDeals + " my direction=" + arriving.myDir + " distinct seat directions=" + arriving.oppDirs);
+    " | hole cards deal=" + arriving.holeDeals + " one at a time (" + arriving.holeStagger + " different start times)" +
+    " | every card starts on the deck (worst miss " + arriving.worstDealGap + "px)");
   console.log("mid-hand: handOver=" + mid.handOver + " showBtn=" + mid.showBtn + " opponent cards face up=" + mid.oppFaceUp + "/" + mid.oppCards);
   console.log("leaving: handOver=" + before.handOver + " board=" + before.board + " sweeping before=" + before.sweeping +
-    " → during: board=" + during.boardSweeping + " seats=" + during.seatsSweeping + " anim=" + (during.boardAnim && during.podAnim) + " opacity=" + during.fading.toFixed(2));
+    " → during: board=" + during.boardSweeping + " seats=" + during.seatsSweeping + " anim=" + (during.boardAnim && during.podAnim) +
+    " | " + during.cards + " cards land back on the deck (worst miss " + during.worstLandGap + "px)");
+  console.log("riffle: deck shuffles=" + shuffled + " animation=" + riffle.anim + " layers moving=" + riffle.layersMoving);
+  console.log("no replay under " + replay.length + " forced re-renders: " +
+    replay.map(r => r.t + "ms=" + r.maxOpacity.toFixed(2)).join(" ") + " | delays anchored=" + replay.every(r => r.anchored));
   console.log("next hand: #" + after.handNo + " sweeping=" + after.sweeping + " my cards back=" + after.myCards + " visible=" + after.visible);
   console.log(errs.length ? "❌ ERRORS:\n" + errs.join("\n") : "✅ no page errors");
 
   const ok = arriving.boardCards === 3 && arriving.boardFliesIn && arriving.boardStaggered && arriving.holeDeals &&
-    arriving.oppDirs >= 2 && arriving.perspective !== "none" &&
+    arriving.holeStagger >= 4 && arriving.perspective !== "none" &&
+    arriving.deckShown && arriving.deckLayers >= 4 && arriving.deckRightOfBoard && arriving.worstDealGap <= 12 &&
     !mid.handOver && !mid.showBtn && mid.oppFaceUp === 0 &&
     before.handOver && before.board === 5 && !before.sweeping &&
     during.boardSweeping && during.seatsSweeping && during.boardAnim && during.podAnim &&
+    during.cards >= 7 && during.worstLandGap <= 12 &&
+    replay.every(r => r.anchored) && replay.filter(r => r.t >= 440).every(r => r.maxOpacity < 0.35) && settled &&
+    shuffled && riffle.anim === "deckSquash" && riffle.layersMoving >= 3 &&
     after.handNo > 7 && !after.sweeping && after.myCards === 2 && after.visible && errs.length === 0;
-  console.log(ok ? "✅ CARD ANIMATIONS — dealt onto the table, swept off before the next hand, nothing shown mid-hand"
+  console.log(ok ? "✅ DECK ANIMATIONS — cards dealt off the deck, swept back into it, riffled before the next hand"
                  : "❌ animation check failed");
   process.exit(ok ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(1); });

@@ -197,7 +197,7 @@
         id: p.id, name: p.name, seat: i, stack: p.stack,
         sittingOut: !!p.sittingOut || p.stack <= 0,
         folded: false, allIn: false, bet: 0, committed: 0,
-        hole: null, acted: false
+        hole: null, acted: false, act: null
       };
     });
 
@@ -315,19 +315,23 @@
     if (!p || p.id !== playerId) return { ok: false, error: "not your turn" };
     if (!canAct(p)) return { ok: false, error: "cannot act" };
     var toCall = state.currentBet - p.bet;
+    var facingBet = state.currentBet > 0;      // no bet yet this street → it's a BET, not a raise
 
     if (action.type === "fold") {
       p.folded = true; p.acted = true;
+      p.act = { t: "FOLD" };                   // shown on the player's seat until the street clears
       log(state, p.name + " folds");
     } else if (action.type === "check") {
       if (toCall > 0) return { ok: false, error: "cannot check facing a bet" };
       p.acted = true;
+      p.act = { t: "CHECK" };
       log(state, p.name + " checks");
     } else if (action.type === "call") {
       var put = Math.min(toCall, p.stack);
       p.stack -= put; p.bet += put; p.committed += put;
       if (p.stack === 0) p.allIn = true;
       p.acted = true;
+      p.act = p.allIn ? { t: "ALL IN", a: p.committed } : { t: "CALL", a: put };
       log(state, p.name + (p.allIn ? " calls " + put + " (all in)" : " calls " + put));
     } else if (action.type === "raise" || action.type === "allin") {
       var target;
@@ -353,7 +357,9 @@
       state.players.forEach(function (q) { if (q !== p && canAct(q)) q.acted = false; });
       p.acted = true;
       state.aggressor = p.seat;
-      log(state, p.name + (p.allIn ? " raises to " + target + " (all in)" : " raises to " + target));
+      p.act = p.allIn ? { t: "ALL IN", a: target } : { t: facingBet ? "RAISE" : "BET", a: target };
+      log(state, p.name + (p.allIn ? " raises to " + target + " (all in)"
+            : (facingBet ? " raises to " + target : " bets " + target)));
     } else {
       return { ok: false, error: "unknown action" };
     }
@@ -424,7 +430,8 @@
   }
 
   function resetRound(state) {
-    state.players.forEach(function (p) { p.bet = 0; if (!p.allIn && !p.folded && !p.sittingOut) p.acted = false; });
+    // a new street wipes the action badges, exactly like the dealer pulling the bets in
+    state.players.forEach(function (p) { p.bet = 0; p.act = null; if (!p.allIn && !p.folded && !p.sittingOut) p.acted = false; });
     state.currentBet = 0;
     state.minRaise = state.bb;
   }

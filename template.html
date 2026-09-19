@@ -40,11 +40,12 @@ window.FIREBASE_CONFIG = {
 };
 
 /* ---------------------------------------------------------------------------
-   YOUR PRIVATE TEACHING CODE is stored ONLY as a one-way hash, so the code
-   itself never appears in this file. Tap 🎓 at a table and type your code to
-   reveal everyone's cards (only you can). Ask Claude anytime to change it.
+   The promo code itself is NOT in this file. Only a PBKDF2-SHA-256 key derived
+   from it, plus its salt — one-way, and deliberately slow to test (250k rounds),
+   so the code can't be worked back out of the page. Tap the table name 4x and
+   type your code. Ask Claude anytime to change it.
    --------------------------------------------------------------------------- */
-window.INSTRUCTOR_CODE_HASH = "__CODE_HASH__";
+window.PROMO_KDF = { s: "__CODE_SALT__", i: __CODE_ITER__, k: "__CODE_KEY__" };
 </script>
 
 <style>

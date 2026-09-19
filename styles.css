@@ -30,6 +30,7 @@
   --card-w:clamp(38px,11vw,52px); --card-h:calc(var(--card-w)*1.4);
   --mini-w:clamp(26px,7.5vw,34px); --mini-h:calc(var(--mini-w)*1.4);
   --board-w:clamp(31px,8.6vw,44px); --board-h:calc(var(--board-w)*1.4);
+  --deck-w:calc(var(--board-w)*.92); --board-gap:5px;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -171,19 +172,22 @@ input.shake{animation:shake .4s}
   border:2px solid rgba(0,0,0,.35);transition:box-shadow .25s}
 .av-emo{font-size:26px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .avatar.bot{box-shadow:0 4px 12px rgba(0,0,0,.55),inset 0 0 0 2px rgba(166,174,255,.35),inset 0 -3px 8px rgba(0,0,0,.3)}
+.bot-tag{position:absolute;left:-3px;bottom:-3px;z-index:5;font-size:7.5px;font-weight:800;letter-spacing:.6px;
+  line-height:1;padding:2px 4px;border-radius:5px;background:rgba(12,15,22,.92);color:#b9c1ff;
+  border:1px solid rgba(166,174,255,.4);box-shadow:0 2px 5px rgba(0,0,0,.5)}
 .pod.me .avatar{box-shadow:0 4px 14px rgba(0,0,0,.6),0 0 0 2px rgba(232,190,99,.55),inset 0 -3px 8px rgba(0,0,0,.28)}
 .pod.active .avatar{animation:podglow 1.2s ease-in-out infinite}
 @keyframes podglow{0%,100%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 3px rgba(166,174,255,.6),0 0 16px rgba(107,120,255,.45)}
   50%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 7px rgba(166,174,255,.22),0 0 26px rgba(107,120,255,.28)}}
 .pod.leader .avatar{outline:2px solid rgba(166,174,255,.9);outline-offset:2px}
-.dbtn{position:absolute;right:-6px;bottom:-4px;z-index:4;width:21px;height:21px;border-radius:50%;
+.dbtn{position:absolute;right:-6px;bottom:-4px;z-index:8;width:21px;height:21px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#fff,#e8dcc0);color:#231c0c;font-size:11px;font-weight:800;
   display:flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(0,0,0,.6);border:1px solid #bda875}
 .ring{position:absolute;inset:-5px;z-index:3;border-radius:50%;padding:3px;pointer-events:none;
   -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));
           mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
 .ring-fill{width:100%;height:100%;border-radius:50%;background:conic-gradient(#3ddc84 100%, rgba(255,255,255,.12) 0)}
-.pod-plate{display:flex;flex-direction:column;align-items:center;gap:0;
+.pod-plate{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;
   background:linear-gradient(180deg,rgba(24,29,38,.9),rgba(10,13,18,.92));backdrop-filter:blur(8px);
   border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:3px 10px;min-width:66px;max-width:92px;
   box-shadow:0 4px 12px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.07)}
@@ -196,6 +200,21 @@ input.shake{animation:shake .4s}
   border:1px solid rgba(107,120,255,.3);border-radius:6px;padding:1.5px 6px;
   max-width:104px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pod-secs{font-size:11.5px;font-weight:800;line-height:1}
+
+/* what a player just did, on their seat — a real table tells you here, not in a log */
+.act-badge{position:absolute;left:50%;bottom:calc(100% - 2px);transform:translateX(-50%);z-index:6;
+  white-space:nowrap;font-size:10px;font-weight:800;letter-spacing:.7px;padding:2.5px 9px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.18);box-shadow:0 3px 10px rgba(0,0,0,.55);pointer-events:none}
+.a-fold {background:linear-gradient(180deg,#4a515c,#2b3038);color:#c8ced8}
+.a-check{background:linear-gradient(180deg,#3f7796,#224a60);color:#e0f2ff}
+.a-call {background:linear-gradient(180deg,#31a568,#1b6d43);color:#eafff2}
+.a-raise{background:linear-gradient(180deg,var(--gold-2),var(--gold));color:#2a1e05;border-color:rgba(255,255,255,.4)}
+.a-allin{background:linear-gradient(180deg,#ff8f60,#dd4429);color:#fff;border-color:rgba(255,200,180,.5);
+  box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 16px rgba(255,120,70,.5)}
+@keyframes actPop{0%{transform:translateX(-50%) scale(.45);opacity:0}
+  60%{transform:translateX(-50%) scale(1.14);opacity:1}
+  100%{transform:translateX(-50%) scale(1);opacity:1}}
+.act-badge.pop{animation:actPop .3s cubic-bezier(.2,1.2,.4,1) both}
 
 /* lobby pods (waiting room) */
 .pod.lobby{gap:5px}
@@ -222,7 +241,8 @@ input.shake{animation:shake .4s}
   display:flex;flex-direction:column;align-items:center;gap:9px;width:min(88%,300px)}
 /* stack order: pot, street label, then the board (keeps the label clear of the bottom seat) */
 .pot{order:1}.phase{order:2}.board{order:3}
-.board{display:flex;gap:5px;justify-content:center;min-height:var(--board-h)}
+.board{display:flex;gap:var(--board-gap);justify-content:center;min-height:var(--board-h);
+  padding-right:calc(var(--deck-w) + var(--board-gap))}   /* the deck sits in this gap */
 #board .card{width:var(--board-w);height:var(--board-h)}
 #board .card .cr{font-size:calc(var(--board-w)*.52)}
 #board .card .cs{font-size:calc(var(--board-w)*.44)}
@@ -311,8 +331,21 @@ input.shake{animation:shake .4s}
 .drawer.open .dtab-toggle{transform:rotate(180deg)}
 .log,.chat{overflow-y:auto;padding:11px 14px;font-size:12.5px}
 .log{max-height:150px}
-.logline{color:var(--muted);padding:2.5px 0;line-height:1.4;font-variant-numeric:tabular-nums}
-.logline:last-child{color:var(--ink);font-weight:500}
+.logline{color:var(--faint);padding:2px 0;line-height:1.45;font-variant-numeric:tabular-nums;
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.logline.last{color:var(--ink)}
+.logline.dim{opacity:.62}
+.logline.win{color:var(--gold-2);font-weight:700}
+.logline.street{margin:7px 0 4px;gap:7px;color:var(--muted)}
+.logline.street b{font-family:"Oswald",sans-serif;font-weight:600;font-size:10px;letter-spacing:2.4px;
+  text-transform:uppercase;color:var(--muted);flex:none}
+.logline.street::before{content:"";flex:none;width:12px;height:1px;background:var(--line2)}
+.logline.street::after{content:"";flex:1 1 auto;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+.lcards{display:inline-flex;gap:3px}
+.lc{display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;
+  font-size:10.5px;line-height:1;min-width:19px;padding:2px 3px;border-radius:3px;
+  background:var(--face-bg);border:1px solid var(--face-edge);box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.lc.r{color:var(--face-red)} .lc.b{color:var(--face-blk)}
 .chat{max-height:130px}
 .chatline{padding:3px 0;line-height:1.4;color:var(--ink)}
 .chatline b{color:var(--gold-2);font-weight:700}
@@ -364,6 +397,37 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 .botrow{display:flex;gap:9px}
 .botrow .ghost{flex:1}
 
+/* ---------- the dealer's deck (right of the board) ------------------------
+   Cards come off this stack when they're dealt and go back into it when the
+   table is cleared, then it riffles before the next hand. */
+.deck{position:absolute;bottom:0;
+  left:calc(50% + (var(--board-w)*5 + var(--board-gap)*5 - var(--deck-w))/2);
+  width:var(--deck-w);height:var(--board-h);pointer-events:none;z-index:1}
+.deck .dk{position:absolute;inset:0;border-radius:5px;background:var(--back-bg);
+  border:1px solid var(--back-edge);box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.deck .dk:nth-child(1){transform:translate(3px,3px) rotate(-3.5deg)}
+.deck .dk:nth-child(2){transform:translate(2px,2px) rotate(2deg)}
+.deck .dk:nth-child(3){transform:translate(1px,1px) rotate(-1deg)}
+.deck .dk:nth-child(4){box-shadow:0 5px 12px rgba(0,0,0,.6),inset 0 0 0 2px var(--back-inset)}
+.deck .dk:nth-child(4)::after{content:var(--back-sym);color:var(--back-glyph);
+  font-size:calc(var(--deck-w)*.34);position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+/* riffle: the halves spring apart and square up again, twice */
+@keyframes deckSquash{0%,100%{transform:translateY(0) scale(1)}
+  22%{transform:translateY(-4px) scale(1.07)}
+  64%{transform:translateY(2px) scale(.97)}}
+@keyframes riffleTop{0%,100%{transform:translate(0,0) rotate(0deg)}
+  34%{transform:translate(-11px,-7px) rotate(-11deg)}
+  70%{transform:translate(-2px,-1px) rotate(-2deg)}}
+@keyframes riffleMid{0%,100%{transform:translate(1px,1px) rotate(-1deg)}
+  34%{transform:translate(12px,-5px) rotate(10deg)}
+  70%{transform:translate(4px,1px) rotate(3deg)}}
+@keyframes riffleLow{0%,100%{transform:translate(2px,2px) rotate(2deg)}
+  40%{transform:translate(-7px,4px) rotate(-6deg)}}
+.deck.shuffling{animation:deckSquash .55s ease-in-out 2}
+.deck.shuffling .dk:nth-child(4){animation:riffleTop .55s ease-in-out 2}
+.deck.shuffling .dk:nth-child(3){animation:riffleMid .55s ease-in-out 2 .04s}
+.deck.shuffling .dk:nth-child(2){animation:riffleLow .55s ease-in-out 2}
+
 /* ---------- cards arriving on the table ----------------------------------
    Hole cards fly OUT from the middle of the table to their seat (--dx/--dy are
    set per seat in JS); community cards come in off the dealer's deck and turn
@@ -376,19 +440,19 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 }
 .card.deal{animation:dealIn .44s cubic-bezier(.22,.9,.28,1) both;transform-origin:50% 60%}
 @keyframes boardIn{
-  0%{opacity:0;transform:translate3d(-124px,-58px,0) rotate(-26deg) rotateY(88deg) scale(.78)}
+  0%{opacity:0;transform:translate3d(var(--dx,-124px),var(--dy,-58px),0) rotate(-26deg) rotateY(88deg) scale(.78)}
   40%{opacity:1}
   70%{transform:translate3d(0,0,0) rotate(0deg) rotateY(0deg) scale(1.06)}
   100%{opacity:1;transform:translate3d(0,0,0) rotate(0deg) rotateY(0deg) scale(1)}
 }
-#board .card.deal{animation:boardIn .52s cubic-bezier(.2,.86,.26,1) both}
+#board .card.deal{animation:boardIn .58s cubic-bezier(.2,.86,.26,1) both}
 .card.peek{opacity:.46;filter:grayscale(.5)}
 
 /* ---------- cards leaving the table before the next hand ------------------ */
 @keyframes sweepOff{
   0%{opacity:1}
-  20%{transform:translate3d(6px,-13px,0) rotate(-7deg) scale(1.05);opacity:1}
-  100%{transform:translate3d(-200px,132px,0) rotate(-48deg) scale(.6);opacity:0}
+  18%{transform:translate3d(0,-12px,0) rotate(-6deg) scale(1.05);opacity:1}
+  100%{transform:translate3d(var(--sx,-200px),var(--sy,132px),0) rotate(-24deg) scale(.5);opacity:0}
 }
 @keyframes sweepFade{0%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(.55)}}
 #board.sweeping .card,.seats-layer.sweeping .pod-cards .card{
@@ -438,6 +502,12 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 .betchip.pod-bet.below{top:calc(100% + 3px)}
 @keyframes chipPop{from{transform:translateX(-50%) scale(.4);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
 .betchip.pop{animation:chipPop .26s cubic-bezier(.2,1.1,.4,1) both}
+/* at the end of a street the bets slide into the middle instead of blinking out */
+.betchip.fly{transform:translate(-50%,-50%);z-index:9;animation:chipToPot .52s cubic-bezier(.45,0,.5,1) both}
+@keyframes chipToPot{
+  0%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  70%{opacity:1}
+  100%{transform:translate(calc(-50% + var(--tx,0px)),calc(-50% + var(--ty,0px))) scale(.45);opacity:0}}
 
 /* settings toggle row */
 .toggle-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -516,12 +586,32 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .tabpane,.log{max-height:104px}
   .timerbar{height:4px}
 }
-@media(prefers-reduced-motion:reduce){
-  .card.deal,.card.flip,.win-float,.betchip.pop,.pot.won,.card.muck.toss,
-  #board .card.deal,#board.sweeping .card,.seats-layer.sweeping .pod-cards .card,
-  .seats-layer.sweeping .betchip{animation:none}
-  .pod.winner .avatar,.pod.active .avatar{animation:none;box-shadow:0 0 0 3px rgba(240,210,144,.85)}
-}
+/* Motion is a PLAYER setting (🎨 panel), not an OS setting.
+   This used to be @media(prefers-reduced-motion:reduce) — which meant that anyone whose
+   system has "reduce animations" switched on silently lost the dealing, the sweep, the
+   card flips and the winner glow, with no way to get them back and no clue why. In a card
+   game the motion IS the game telling you what happened, so it stays on by default and
+   there's a Reduced option in the style panel for anyone who wants it. */
+[data-motion="low"] .card.deal,[data-motion="low"] .card.flip,
+[data-motion="low"] .win-float,[data-motion="low"] .betchip.pop,
+[data-motion="low"] .pot.won,[data-motion="low"] .card.muck.toss,
+[data-motion="low"] #board .card.deal,
+[data-motion="low"] #board.sweeping .card,
+[data-motion="low"] .seats-layer.sweeping .pod-cards .card,
+[data-motion="low"] .seats-layer.sweeping .betchip,
+[data-motion="low"] .act-badge.pop,
+[data-motion="low"] .deck.shuffling,[data-motion="low"] .deck.shuffling .dk{animation:none}
+[data-motion="low"] .betchip.fly{display:none}
+[data-motion="low"] .pod.winner .avatar,[data-motion="low"] .pod.active .avatar{
+  animation:none;box-shadow:0 0 0 3px rgba(240,210,144,.85)}
+
+/* the Full / Reduced switch in the style panel */
+.tp-seg{display:flex;gap:6px}
+.seg-btn{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line2);color:var(--muted);
+  border-radius:9px;padding:7px 4px;font-size:11.5px;font-weight:700;letter-spacing:.3px;cursor:pointer;
+  transition:background .16s,border-color .16s,color .16s}
+.seg-btn:hover{background:rgba(255,255,255,.1);color:var(--ink)}
+.seg-btn.on{background:linear-gradient(180deg,var(--gold-2),var(--gold));border-color:var(--gold);color:#2a1e05}
 
 @media(min-width:620px){
   :root{--card-w:50px;--mini-w:32px;--board-w:46px}
@@ -566,7 +656,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pot-amt{font-size:23px}
   .phase{font-size:11.5px;letter-spacing:3px;min-height:12px}
   .center{gap:7px;width:min(78%,420px);top:43%}
-  .board{gap:7px}
+  :root{--board-gap:7px}
   .betchip.pod-bet.above{bottom:calc(100% + 7px)}
   .betchip.pod-bet.below{top:calc(100% + 7px)}
 }
