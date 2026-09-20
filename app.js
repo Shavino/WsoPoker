@@ -895,6 +895,7 @@
         '<div class="tp-group"><div class="tp-lab">Animations</div><div class="tp-seg" id="tp-motion"></div></div>' +
         '<div class="tp-note" id="tp-note">Only changes what <b>you</b> see.</div>' +
       '</div>' +
+      '<div id="rail" class="rail-seats"></div>' +
       '<main class="felt">' +
         '<div class="table-oval">' +
           '<div class="rail"></div>' +
@@ -907,6 +908,7 @@
           '<div id="bets-layer" class="bets-layer"></div>' +
           '<div id="seats-layer" class="seats-layer"></div>' +
           '<div id="lobby-box" class="lobby-box" hidden></div>' +
+          '<div id="result-banner" class="result-banner" hidden></div>' +
         '</div>' +
       '</main>' +
       '<div id="my-hand" class="my-hand"></div>' +
@@ -1101,6 +1103,7 @@
     }
     renderSeats();
     renderCenter();
+    renderResultBanner();
     applySweepClasses();
     applyCardOrigins();
     renderMe();
@@ -1128,7 +1131,7 @@
   }
   function applyCardOrigins() {
     var a = deckAnchor(); if (!a) return;
-    var dealt = document.querySelectorAll("#seats-layer .card.deal, #board .card.deal, #my-hand .card.deal");
+    var dealt = document.querySelectorAll("#seats-layer .card.deal, #rail .card.deal, #board .card.deal, #my-hand .card.deal");
     if (dealt.length) {
       // zero the offsets first: the card is already sitting on its 0% keyframe, and
       // measuring it there would fold the old offset into the new one. Rotation and
@@ -1150,7 +1153,7 @@
       // whenever anything else updated mid-sweep (a heartbeat, someone showing their cards).
       // Anchoring the delay to when the sweep began makes a fresh element pick the animation
       // up where it already was, and land finished once the sweep is over.
-      document.querySelectorAll("#seats-layer .pod-cards .card, #my-hand .pod-cards .card").forEach(function (c) {
+      document.querySelectorAll("#seats-layer .pod-cards .card, #rail .pod-cards .card, #my-hand .pod-cards .card").forEach(function (c) {
         setOrigin(c, a, "--sx", "--sy");
         c.style.animationDelay = (-elapsed).toFixed(2) + "s";
       });
@@ -1189,6 +1192,7 @@
     var on = !!(g && g.handOver && g.handNo === sweptHand);
     var b = $("board"); if (b) b.classList.toggle("sweeping", on);
     var sl = $("seats-layer"); if (sl) sl.classList.toggle("sweeping", on);
+    var rl = $("rail"); if (rl) rl.classList.toggle("sweeping", on);
     var mh = $("my-hand"); if (mh) mh.classList.toggle("sweeping", on);
   }
 
@@ -1213,6 +1217,46 @@
   function dealWindowMs() {
     var n = (cur.game && cur.game.players ? cur.game.players.length : 2) || 2;
     return Math.round((2 * n * DEAL_STEP + 0.7) * 1000);
+  }
+
+  /* ---------- who won ------------------------------------------------------
+     A gold glow on a seat and a small "+60" is not enough to follow a hand — people were
+     genuinely missing who took the pot. At the end of every hand a banner says it in words
+     over the middle of the table: the name, the amount, and the hand that won. It's built
+     once per hand (rebuilding it would restart its animation on every table update) and
+     clears itself when the dealer starts collecting the cards. */
+  var rbHand = -1;
+  function resultBannerHTML(res) {
+    var byId = {}, order = [];
+    (res.pots || []).forEach(function (pot) {
+      (pot.winners || []).forEach(function (w) {
+        if (w == null || w.id == null) return;
+        if (!byId[w.id]) { byId[w.id] = { name: w.name, amount: 0, hand: w.hand || "" }; order.push(w.id); }
+        byId[w.id].amount += w.amount || 0;
+        if (w.hand) byId[w.id].hand = w.hand;
+      });
+    });
+    if (!order.length) return "";
+    var split = order.length > 1;
+    var html = '<div class="rb-title">' + (split ? "Split pot" : "Winner") + "</div>";
+    order.forEach(function (id) {
+      var w = byId[id];
+      html += '<div class="rb-row"><span class="rb-name">' + esc(w.name) + '</span>' +
+              '<span class="rb-amt">+' + fmt(w.amount) + "</span></div>";
+    });
+    var sub = res.byFold ? "everyone else folded" : (byId[order[0]].hand || "");
+    if (sub) html += '<div class="rb-hand">' + esc(sub) + "</div>";
+    return html;
+  }
+  function renderResultBanner() {
+    var host = $("result-banner"); if (!host) return;
+    var g = cur.game;
+    var show = !!(g && g.handOver && g.result && g.handNo !== sweptHand);
+    if (!show) { if (rbHand !== -1) { host.hidden = true; host.innerHTML = ""; rbHand = -1; } return; }
+    if (rbHand === g.handNo) return;                  // already up — leave its animation alone
+    var html = resultBannerHTML(g.result);
+    if (!html) return;
+    rbHand = g.handNo; host.innerHTML = html; host.hidden = false;
   }
 
   function winnersMap(g) {
@@ -1283,10 +1327,20 @@
   }
 
   // One unified seat renderer: everyone (including me) gets a pod around the oval.
+  // Where a seat goes. On a desktop every seat is pinned around the oval. On a phone the
+  // oval is barely taller than the board itself, so seats pinned to it land ON the cards
+  // and on the pot — no amount of shrinking fixes that. Opponents move to a rail above the
+  // table and my own seat drops below it, which leaves the felt to the board, full stop.
+  function placeSeat(pod, mine) {
+    var layer = $("seats-layer"), hand = $("my-hand"), rail = $("rail");
+    if (!phoneLayout()) { layer.appendChild(pod); return; }
+    pod.classList.add("offtable");
+    (mine ? (hand || layer) : (rail || layer)).appendChild(pod);
+  }
   function renderSeats() {
-    var layer = $("seats-layer"), hand = $("my-hand");
+    var layer = $("seats-layer"), hand = $("my-hand"), rail = $("rail");
     if (!layer) return;
-    layer.innerHTML = ""; if (hand) hand.innerHTML = "";
+    layer.innerHTML = ""; if (hand) hand.innerHTML = ""; if (rail) rail.innerHTML = "";
     var g = cur.game;
 
     if (!g || !g.players) {
@@ -1296,7 +1350,7 @@
       var ord = orderedFromMe(lob), n = ord.length || 1;
       ord.forEach(function (o) {
         var xy = seatXY(o.k, n);
-        layer.appendChild(lobbyPod(o.p, xy));
+        placeSeat(lobbyPod(o.p, xy), o.p.id === clientId);
       });
       return;
     }
@@ -1312,10 +1366,12 @@
       if (g.handOver && hasShown(p.id) && !showAt[p.id]) showAt[p.id] = Date.now();
       if (!p.act) delete actSig[p.id];                 // street cleared → the next action is new
       var isTurn = !g.handOver && g.toAct != null && g.players[g.toAct] && g.players[g.toAct].id === p.id;
-      layer.appendChild(playerPod(p, xy, isTurn, leaderId));
+      var pod = playerPod(p, xy, isTurn, leaderId);
+      placeSeat(pod, p.id === clientId);
       newBets[p.id] = p.bet || 0;
       // start where the bet chip actually sat (above or below the seat), not on the avatar
-      if (lastBets[p.id] > 0 && !(p.bet > 0)) collected.push({ x: xy.x, y: xy.y + (xy.y < 33 ? 7 : -7), amount: lastBets[p.id] });
+      if (lastBets[p.id] > 0 && !(p.bet > 0))
+        collected.push({ x: xy.x, y: xy.y + (xy.y < 33 ? 7 : -7), amount: lastBets[p.id], pod: pod, mine: p.id === clientId });
     });
     lastBets = newBets;
     if (collected.length) flyChipsToPot(collected);      // the dealer pulls the bets into the middle
@@ -1329,6 +1385,11 @@
     if (!orect.width || !prect.width) return;
     var px = prect.left + prect.width / 2 - orect.left, py = prect.top + prect.height / 2 - orect.top;
     chips.forEach(function (c, i) {
+      if (c.pod && phoneLayout() && c.pod.getBoundingClientRect().width) {
+        var pr = c.pod.getBoundingClientRect();
+        c = { x: Math.max(4, Math.min(96, (pr.left + pr.width / 2 - orect.left) / orect.width * 100)),
+              y: c.mine ? 97 : 3, amount: c.amount };
+      }
       var e = el("div", "betchip fly");
       e.innerHTML = '<span class="chip-dot"></span>' + fmt(c.amount);
       e.style.left = c.x + "%"; e.style.top = c.y + "%";
@@ -1390,6 +1451,7 @@
       peek = instructorOn && !mine && !showdownReveal && !volunteered;
     }
     var handEndReveal = showdownReveal || volunteered;
+    if (peek && !tabled) pod.classList.add("peeking");   // promo: this hand shows over the picture
     var justFolded = mucked && !!foldAt[p.id] && (Date.now() - foldAt[p.id] < 700);
     var justShown = volunteered && !!showAt[p.id] && (Date.now() - showAt[p.id] < 700);
     function buildCards(sizeCls) {
@@ -1415,18 +1477,13 @@
       }
       return cards;
     }
-    if (mine) {
-      var myCards = buildCards("");
-      var hand = $("my-hand");
-      if (phoneLayout() && hand) hand.appendChild(myCards);   // own row under the table
-      else pod.appendChild(myCards);
-    }
+    var myCards = mine ? buildCards("") : null;
+    if (mine && !phoneLayout()) pod.appendChild(myCards);     // desktop: above my avatar
 
     // avatar with dealer button + timer ring (+ opponents' peeking cards behind it)
     var avwrap = el("div", "pod-av");
     if (!mine) avwrap.appendChild(buildCards("mini"));   // absolute, tucked behind the avatar
     avwrap.appendChild(avatarEl(p.id));
-    if (isBotId(p.id) && canManageBots()) avwrap.appendChild(kickButton(p));
     if (g.button != null && g.players[g.button] && g.players[g.button].id === p.id) avwrap.appendChild(el("span", "dbtn", "D"));
     if (isTurn) { var ring = el("div", "ring"); ring.appendChild(el("div", "ring-fill")); avwrap.appendChild(ring); }
     pod.appendChild(avwrap);
@@ -1443,6 +1500,12 @@
 
     // What this player just did, shown on their seat until the street clears — the way a
     // real table tells you, instead of a line of text scrolling past in a log.
+    // on the plate, not the avatar: with the promo on, the peeked cards cover the avatar.
+    // In the phone rail the plate is one tight line — name, stack — so the ✕ goes back to
+    // the corner of the picture, where it covers nothing you need to read.
+    var kickOnPicture = phoneLayout() && !pod.classList.contains("peeking");
+    if (isBotId(p.id) && canManageBots()) (kickOnPicture ? avwrap : plate).appendChild(kickButton(p));
+    if (handEnd && wonAmt > 0) plate.appendChild(el("div", "act-badge a-win", "WINNER"));
     if (p.act && p.act.t && !handEnd && ACT_CLASS[p.act.t]) {
       var sig = p.act.t + ":" + (p.act.a || 0) + ":" + (g.phase || "");
       if (actSig[p.id] !== sig) { actSig[p.id] = sig; actAt[p.id] = Date.now(); }
@@ -1459,6 +1522,7 @@
       pod.appendChild(chip);
     }
     if (wonAmt > 0 && flipReveal) pod.appendChild(el("div", "win-float", "+" + fmt(wonAmt)));  // one-shot rising chips
+    if (myCards && phoneLayout()) pod.appendChild(myCards);   // phone: big cards under my own plate
     return pod;
   }
 
@@ -1525,7 +1589,8 @@
     }
     if (!g.handOver) { pot.hidden = false; pot.classList.remove("won"); pot.innerHTML = '<span class="pot-label">POT</span><span class="pot-amt">' + fmt(E.potTotal(g)) + '</span>'; }
     else if (g.result) {
-      pot.hidden = false; pot.innerHTML = '<span class="pot-label">RESULT</span><span class="pot-amt win">' + esc(resultText(g.result)) + '</span>';
+      // the banner says who won; the pill just shows what was in the middle
+      pot.hidden = false; pot.innerHTML = '<span class="pot-label">POT</span><span class="pot-amt">' + fmt(resultPotTotal(g.result)) + '</span>';
       if (flipReveal) { pot.classList.remove("won"); void pot.offsetWidth; pot.classList.add("won"); }   // restart the pulse once
     }
     else { pot.hidden = true; pot.classList.remove("won"); }
@@ -1590,6 +1655,11 @@
     for (var i = seats.length - 1; i >= 0; i--) { if (seats[i] && seats[i].isBot) { seats[i] = null; cur.ref.child("seats").set(seats); return; } }
   }
 
+  function resultPotTotal(res) {
+    var n = 0;
+    (res.pots || []).forEach(function (pot) { n += pot.amount || 0; });
+    return n;
+  }
   function resultText(res) {
     if (!res.pots || !res.pots.length) return "";
     var parts = [];

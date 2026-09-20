@@ -54,8 +54,9 @@ node shoot-style.js      # the style picker: 6 backgrounds / 6 tables / 6 decks,
 node shoot-anim.js       # cards dealt off the deck, swept back into it, riffled; nothing shown mid-hand
 node shoot-promo.js      # promo code: hidden, wrong codes refused, right one reveals the table
 node shoot-table-feel.js # seat action badges, bets sliding to the pot, the log, motion setting
-node shoot-phone.js      # phone layout: hand clear of the board, dock never moves, desktop untouched
+node shoot-phone.js      # phone layout: seats off the felt, nothing covers the board, desktop untouched
 node shoot-kick.js       # only the table's creator can add or remove a bot
+node shoot-winner.js     # the end of a hand names the winner, the amount and the hand
 ```
 
 > The mock database in `mockfb.js` deliberately mimics a real Firebase quirk: it **drops
@@ -101,6 +102,14 @@ POKER_CODE="YOUR-NEW-CODE" node build.js     # prints a new salt + key to paste 
   (`poker_bg` / `poker_table` / `poker_cards`) and changes nothing for anyone else at the table.
   A style is only a set of CSS variables, switched by `data-bg` / `data-table` / `data-cards` on
   `<html>` — adding a seventh is a few lines at the bottom of `styles.css` plus one entry in `THEMES`.
+- **The end of a hand is spelled out.** A gold glow on a seat and a small floating "+60"
+  were not enough — people genuinely could not tell who had won. A banner now sits over the
+  middle of the table from the moment the hand ends until the dealer starts collecting the
+  cards, naming the winner, the amount and the hand that won it ("Two Pair, Kings and Twos",
+  or "everyone else folded" when there was no showdown), and the winning seat carries a gold
+  WINNER tag. Split pots list every winner. It's built once per hand — rebuilding it would
+  restart its animation on every table update — and it's positioned clear of the community
+  cards, because the first thing people look at next is what won.
 - **Bots belong to whoever made the table.** `meta.hostId` is written once when the table is
   created and never reassigned — which is deliberately *not* `amHost`, the browser currently
   running the engine, since that moves between players. Only the creator sees the ✕ on a bot's
@@ -108,18 +117,34 @@ POKER_CODE="YOUR-NEW-CODE" node build.js     # prints a new salt + key to paste 
   the seat goes immediately, the hand that bot was already dealt into plays out, and
   `settleStacks()` only writes chips back to seats that still exist. If the creator has left
   the table, whoever is running it can manage bots instead, so a table can't get stuck full
-  of them.
-- **On a phone the layout is a different shape.** Below 980px two things change, and both
-  are load-bearing. My own two cards leave the felt and get their own row between the table
-  and the buttons (`phoneLayout()` in `renderSeats` puts them in `#my-hand` instead of my
-  pod) — on a small oval a hand held at my seat sits on top of the community cards, which
-  made the game genuinely unplayable. And the action dock keeps a fixed height in every
-  state (`--dock-h`, with an `.idle` state instead of `hidden`): it used to disappear
-  whenever it wasn't my turn, which resized the table and moved every button on screen
-  twice a turn, so you'd reach for Call and hit Fold. The seats are also smaller and sit
-  further out on a phone (`seatXY` widens the ring), and on very short screens the per-seat
-  bet chips are dropped — the action badge already carries the number. `shoot-phone.js`
-  measures all of it, including that the desktop layout is untouched.
+  of them. The ✕ sits on the bot's picture on a phone and on its name
+  plate on a desktop — and moves to the plate on a phone too when the promo is on, because
+  then the revealed hand is what's over the picture.
+- **On a phone the seats come off the felt entirely.** This is the one structural difference
+  between the two layouts, and it exists because shrinking the seats never worked. A phone
+  browser gives a page about 700px of height, not the 844px on the box: take off the header,
+  my own hand, the action dock and the history drawer and the oval is ~130px tall — barely
+  taller than the board itself. Seats pinned around an oval that size land *on* the community
+  cards and *on* the pot at any size you draw them. So below 980px `placeSeat()` puts the
+  opponents in a rail above the table (`#rail`) and my own seat below it (`#my-hand`), and the
+  felt holds nothing but the pot, the street and the board. Overlap stops being something to
+  tune and becomes impossible. Each rail seat is a picture, a name over a stack, the action
+  badge under it and the dealer button; face-down cards shrink to a hint behind the picture,
+  and a hand the promo has revealed stays full size in front of it. Bets aren't drawn at the
+  seat here — the badge already says CALL 60 — but they still fly into the pot when the street
+  closes, from the rail rather than from a point on the felt. The action dock keeps a fixed
+  height in every state (`--dock-h`, with an `.idle` state instead of `hidden`): it used to
+  disappear whenever it wasn't my turn, which resized the table and moved every button on
+  screen twice a turn, so you'd reach for Call and hit Fold. The header is one line on a
+  phone, and the dock tightens on short screens, because both of those are board pixels. The
+  two screens *before* the table matter just as much: the table settings are a fixed, centred
+  panel capped at `100dvh - 92px`, and on short screens the front page shrinks its logo and
+  fields, so neither one scrolls — you can't create a table you can't see the Start button on.
+  `shoot-phone.js` measures all of it at four phone sizes — including 393x700, what a phone
+  browser really gives you — at two, four, six and eight players: no seat element may touch
+  the pot, the street, the board or the deck; the board must sit inside the felt; nothing may
+  scroll; the dock and the table must not move between states; and the desktop must still put
+  every seat around the oval with my cards at my own.
 - **The table tells you what happened, not a text feed.** When someone acts, a badge appears
   on *their seat* — FOLD, CHECK, CALL 20, RAISE 200, ALL IN — and stays there until the street
   clears, exactly as it does on a real client. The engine records it as `p.act` and `resetRound()`
@@ -173,7 +198,10 @@ POKER_CODE="YOUR-NEW-CODE" node build.js     # prints a new salt + key to paste 
   Web Audio API, with its own gain bus separate from the sound effects. The 🔊 button opens a
   panel with independent Music and Sound-effects volume sliders, saved to localStorage. Browsers
   block audio until the first tap, so the loop starts on the first click.
-- **What the promo code can and can't do.** It stops anyone from *finding* the code: it isn't in
+- **What the promo code can and can't do.** With it on, an opponent's hand is drawn at 1.5x
+  *in front of* their picture (`.pod.peeking`, `z-index:7`) rather than tucked behind it —
+  a peeked hand you can't read is no use — greyed so it's never mistaken for a real showdown.
+  It stops anyone from *finding* the code: it isn't in
   the page, and PBKDF2 at 250k rounds makes guessing it hopeless. It does not make the cards
   themselves secret — this table has no server, so one of the players' browsers runs the dealer
   and every browser holds the whole game state. Someone who knows their way around devtools could

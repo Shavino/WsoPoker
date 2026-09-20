@@ -38,7 +38,7 @@ const seed = {
 
   const before = await page.evaluate(() => {
     const me = [...document.querySelectorAll("#me-panel button")].find(b => /show my cards/i.test(b.textContent));
-    const mine = document.querySelector("#seats-layer .pod.me .pod-cards");
+    const mine = document.querySelector(".pod.me .pod-cards");
     return { hasShowBtn: !!me, myCardsFaceUp: mine ? [...mine.querySelectorAll(".card")].filter(c => !c.classList.contains("back")).length : -1 };
   });
 
@@ -61,7 +61,7 @@ const seed = {
   // a bot that didn't reach showdown should be hidden until it "shows"
   const opp = await page.evaluate(() => {
     const t = window.__MOCK_TREE__(); const tbl = t.tables.TEST; const g = tbl.game;
-    const hidden = [...document.querySelectorAll("#seats-layer .pod:not(.me)")].map(p => ({
+    const hidden = [...document.querySelectorAll(".pod:not(.me)")].map(p => ({
       name: (p.querySelector(".pod-name") || {}).textContent,
       up: [...p.querySelectorAll(".pod-cards .card")].filter(c => !c.classList.contains("back")).length
     }));
@@ -73,7 +73,7 @@ const seed = {
     const wasUp = await page.evaluate((id) => {
       const t = window.__MOCK_TREE__(); const g = t.tables.TEST.game;
       const nm = g.players.find(p => p.id === id).name;
-      const pod = [...document.querySelectorAll("#seats-layer .pod")].find(p => (p.querySelector(".pod-name") || {}).textContent === nm);
+      const pod = [...document.querySelectorAll(".pod")].find(p => (p.querySelector(".pod-name") || {}).textContent === nm);
       return pod ? [...pod.querySelectorAll(".pod-cards .card")].filter(c => !c.classList.contains("back")).length : -1;
     }, target);
     await page.evaluate((id) => {
@@ -85,7 +85,7 @@ const seed = {
     const nowUp = await page.evaluate((id) => {
       const t = window.__MOCK_TREE__(); const g = t.tables.TEST.game;
       const nm = g.players.find(p => p.id === id).name;
-      const pod = [...document.querySelectorAll("#seats-layer .pod")].find(p => (p.querySelector(".pod-name") || {}).textContent === nm);
+      const pod = [...document.querySelectorAll(".pod")].find(p => (p.querySelector(".pod-name") || {}).textContent === nm);
       return pod ? [...pod.querySelectorAll(".pod-cards .card")].filter(c => !c.classList.contains("back")).length : -1;
     }, target);
     oppFlip = "folded bot before=" + wasUp + " after they show=" + nowUp + (wasUp === 0 && nowUp === 2 ? " ✅" : " ❌");

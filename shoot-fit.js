@@ -43,6 +43,7 @@ const SIZES = [[390, 844, "iPhone 14"], [360, 640, "small android"], [1366, 768,
         scrollH: document.documentElement.scrollHeight,
         scrollable: document.documentElement.scrollHeight > window.innerHeight + 1,
         oval: r(".table-oval"), controls: r("#controls"), drawer: r("#drawer"),
+        card: r("#board .card"), hand: r("#my-hand .pod-cards .card, .pod.me .pod-cards .card"),
         hasRaise: !!document.querySelector("#controls .slider"),
         drawerOpen: document.querySelector("#drawer").classList.contains("open")
       };
@@ -50,15 +51,18 @@ const SIZES = [[390, 844, "iPhone 14"], [360, 640, "small android"], [1366, 768,
     await page.screenshot({ path: path.join(dir, "shots", "fit-" + w + "x" + h + ".png") });
     await ctx.close();
     const bottomMost = Math.max(m.controls ? m.controls.bottom : 0, m.drawer ? m.drawer.bottom : 0);
-    // the table has to stay a reasonable share of the screen. On a phone my hand and the
-    // fixed-size action dock take their cut first, so the bar scales with the viewport
-    // rather than being a flat pixel count.
-    const minOval = Math.min(240, Math.round(m.vh * 0.33));
-    const ok = !m.scrollable && bottomMost <= m.vh && m.oval && m.oval.h >= minOval && errs.length === 0;
+    // What has to be big enough is the CARDS, not the oval. On a phone the oval no longer
+    // holds the seats — they sit on a rail above it and my own hand below it — so a felt
+    // that is a third of the screen would only be empty green. The felt has to hold the
+    // board with room around it, and the cards have to be readable at arm's length.
+    const phone = w < 980;
+    const bigEnough = m.card && m.card.h >= (phone ? 36 : 52) && m.hand && m.hand.h >= (phone ? 42 : 60) &&
+      m.oval && m.oval.h >= m.card.h + 40 && (phone || m.oval.h >= Math.min(240, Math.round(m.vh * 0.33)));
+    const ok = !m.scrollable && bottomMost <= m.vh && bigEnough && errs.length === 0;
     if (!ok) allOk = false;
     console.log(label.padEnd(14) + w + "x" + h +
       "  scrollable=" + m.scrollable +
-      "  oval=" + (m.oval ? m.oval.h : "-") + "px" +
+      "  oval=" + (m.oval ? m.oval.h : "-") + "px  board card=" + (m.card ? m.card.h : "-") + "px  my card=" + (m.hand ? m.hand.h : "-") + "px" +
       "  lowest=" + bottomMost + "/" + m.vh +
       "  raiseUI=" + m.hasRaise + "  " + (ok ? "✅" : "❌") + (errs.length ? " ERR:" + errs[0] : ""));
   }

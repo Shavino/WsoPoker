@@ -36,7 +36,7 @@ const seed = {
       const t = window.__MOCK_TREE__ ? window.__MOCK_TREE__() : null;
       const g = t && t.tables && t.tables.TEST ? t.tables.TEST.game : null;
       if (!g || !g.handOver || !g.result) return null;
-      const pods = [...document.querySelectorAll("#seats-layer .pod")];
+      const pods = [...document.querySelectorAll(".pod")];
       const oppFaceUp = pods.filter(p => !p.classList.contains("me")).map(p => {
         const cards = [...p.querySelectorAll(".pod-cards .card")];
         return { name: (p.querySelector(".pod-name") || {}).textContent, faceUpCards: cards.filter(c => !c.classList.contains("back") && !c.classList.contains("slot")).length, backCards: cards.filter(c => c.classList.contains("back")).length };

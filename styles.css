@@ -156,6 +156,7 @@ input.shake{animation:shake .4s}
     0 0 0 1px rgba(0,0,0,.7),
     0 20px 44px rgba(0,0,0,.5)}
 .seats-layer,.bets-layer{position:absolute;inset:0;pointer-events:none}
+.rail-seats{display:none}   /* phones only — see the seat rail in the phone block */
 
 /* a player pod (avatar + cards + name/stack) positioned around the oval */
 .pod{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;width:82px;
@@ -190,6 +191,7 @@ input.shake{animation:shake .4s}
   padding:0;box-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:auto;opacity:.82;
   transition:background .15s,transform .1s,opacity .15s}
 .kick-btn:hover{background:linear-gradient(180deg,#9b3b45,#61242c);color:#fff;transform:scale(1.12);opacity:1}
+.pod-plate > .kick-btn{top:auto;bottom:-12px;right:-11px}
 .pod.lobby .pod-av{width:auto;height:auto}
 
 .ring{position:absolute;inset:-5px;z-index:3;border-radius:50%;padding:3px;pointer-events:none;
@@ -464,6 +466,12 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 }
 #board .card.deal{animation:boardIn .58s cubic-bezier(.2,.86,.26,1) both}
 .card.peek{opacity:.46;filter:grayscale(.5)}
+/* With the promo on, a peeked hand is no use tucked behind the player's picture — it comes
+   out in front of it, bigger, and only lightly greyed so it can actually be read. */
+.pod.peeking .pod-av .pod-cards{z-index:7;top:-4px}
+.pod.peeking .pod-av .pod-cards .card{width:calc(var(--mini-w)*1.5);height:calc(var(--mini-h)*1.5);
+  box-shadow:0 5px 14px rgba(0,0,0,.8),0 0 0 1px rgba(0,0,0,.5)}
+.pod.peeking .card.peek{opacity:.9;filter:grayscale(.42)}
 
 /* ---------- cards leaving the table before the next hand ------------------ */
 @keyframes sweepOff{
@@ -472,14 +480,14 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   100%{transform:translate3d(var(--sx,-200px),var(--sy,132px),0) rotate(-24deg) scale(.5);opacity:0}
 }
 @keyframes sweepFade{0%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(.55)}}
-#board.sweeping .card,.seats-layer.sweeping .pod-cards .card{
+#board.sweeping .card,.seats-layer.sweeping .pod-cards .card,.rail-seats.sweeping .pod-cards .card{
   animation:sweepOff .62s cubic-bezier(.45,0,.9,.55) both}
 #board.sweeping .card:nth-child(2){animation-delay:.05s}
 #board.sweeping .card:nth-child(3){animation-delay:.1s}
 #board.sweeping .card:nth-child(4){animation-delay:.15s}
 #board.sweeping .card:nth-child(5){animation-delay:.2s}
-.seats-layer.sweeping .pod-cards .card:nth-child(2){animation-delay:.06s}
-.seats-layer.sweeping .betchip{animation:sweepFade .45s ease-in both}
+.seats-layer.sweeping .pod-cards .card:nth-child(2),.rail-seats.sweeping .pod-cards .card:nth-child(2){animation-delay:.06s}
+.seats-layer.sweeping .betchip,.rail-seats.sweeping .betchip{animation:sweepFade .45s ease-in both}
 
 /* folded hands get thrown face down onto the table; showing turns them over */
 .card.muck{--rot:-9deg;transform:rotate(var(--rot)) scale(.86);box-shadow:0 3px 10px rgba(0,0,0,.62)}
@@ -495,6 +503,29 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 .pod-av,.pod-cards{perspective:520px}
 @keyframes cardFlip{0%{transform:rotateY(74deg) scale(.95);opacity:.4}55%{opacity:1}100%{transform:rotateY(0) scale(1);opacity:1}}
 .card.flip{animation:cardFlip .5s ease-out both;transform-origin:center}
+
+/* ---------- who won, said out loud ---------------------------------------
+   Sits over the middle of the table for the few seconds between the hand ending
+   and the dealer collecting the cards. */
+.result-banner{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);z-index:14;
+  min-width:min(58%,220px);max-width:min(90%,360px);padding:9px 20px 11px;border-radius:15px;
+  background:linear-gradient(180deg,rgba(43,33,14,.97),rgba(17,13,7,.97));
+  border:1px solid var(--gold);text-align:center;pointer-events:none;
+  box-shadow:0 18px 46px rgba(0,0,0,.72),0 0 0 1px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.14),0 0 38px rgba(232,190,99,.22);
+  animation:rbIn .42s cubic-bezier(.2,1.12,.35,1) both}
+.rb-title{font-size:9px;letter-spacing:3.4px;text-transform:uppercase;color:var(--gold);font-weight:800;opacity:.95}
+.rb-row{display:flex;align-items:baseline;justify-content:center;gap:9px;margin-top:2px;flex-wrap:wrap}
+.rb-name{font-family:"Oswald",sans-serif;font-size:21px;letter-spacing:.5px;color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,.7);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb-amt{font-family:"Oswald",sans-serif;font-size:21px;color:var(--gold-2);
+  text-shadow:0 1px 10px rgba(232,190,99,.45)}
+.rb-hand{font-size:11.5px;color:#dbe3ee;margin-top:3px;letter-spacing:.3px;line-height:1.3}
+@keyframes rbIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+  62%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.a-win{background:linear-gradient(180deg,var(--gold-2),var(--gold));color:#2a1e05;
+  border-color:rgba(255,255,255,.45);box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 16px rgba(232,190,99,.5)}
 
 /* winner celebration: gold pulse + rising chips */
 @keyframes winGlow{0%,100%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 3px rgba(240,210,144,.9),0 0 24px rgba(240,210,144,.6)}
@@ -585,30 +616,103 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
      fine on a big table, but on a phone that's exactly where the board is. */
   .betchip.pod-bet.above{bottom:calc(100% - 5px)}
   .betchip.pod-bet.below{top:calc(100% - 5px)}
-  .my-hand{display:flex;justify-content:center;align-items:flex-end;flex:none;
-    height:calc(var(--card-h)*1.14 + 6px);margin:2px 12px 0}
-  .my-hand .pod-cards{display:flex;gap:7px;justify-content:center}
-  .my-hand .card{width:calc(var(--card-w)*1.14);height:calc(var(--card-h)*1.14)}
+  .my-hand{display:flex;justify-content:center;align-items:flex-start;flex:none;margin:1px 12px 0}
+  .my-hand .pod-cards{display:flex;gap:7px;justify-content:center;margin:0}
+  .my-hand .pod.offtable .pod-cards .card{width:calc(var(--card-w)*1.14);height:calc(var(--card-h)*1.14)}
   .my-hand .card .cr{font-size:calc(var(--card-w)*.57)}
   .my-hand .card .cs{font-size:calc(var(--card-w)*.48)}
+  /* my own seat is a strip, not a tower: picture, name and stack on one line */
+  .my-hand .pod.offtable{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:7px}
+  .my-hand .pod.offtable .pod-av{width:28px;height:28px;order:1}
+  .my-hand .pod.offtable .avatar{width:28px;height:28px}
+  .my-hand .pod.offtable .av-emo{font-size:14px}
+  .my-hand .pod.offtable .dbtn{width:15px;height:15px;font-size:8.5px}
+  .my-hand .pod.offtable .pod-plate{order:2;flex-direction:row;align-items:baseline;gap:6px;padding:3px 9px}
+  .my-hand .pod.offtable .pod-best{order:3;align-self:center}
+  .my-hand .pod.offtable .pod-secs{display:none}
+  .my-hand .pod.offtable .pod-cards{order:4;flex-basis:100%}
   /* one fixed-size dock for every state: my turn, someone else's, between hands */
   .controls{min-height:var(--dock-h,266px);justify-content:flex-start}
   .quick{flex-wrap:nowrap}
-  /* A phone can't hold eight full-size seats around a small oval: the plates and the
-     peeking cards end up sitting on the community cards. Everything at the seats gets
-     smaller here, and the seats themselves sit further out (see seatXY), which leaves the
-     middle of the felt to the board. */
-  :root{--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(26px,7.2vw,38px);--board-gap:4px}
-  .pod{width:68px;gap:3px}
-  .avatar,.pod-av{width:42px;height:42px}
-  .av-emo{font-size:21px}
-  .pod:not(.me) .pod-av .pod-cards{top:-14px}
+  /* THE SEATS COME OFF THE FELT. A phone's oval is barely taller than the board, so seats
+     pinned around it land on the community cards and on the pot however small you make
+     them. Opponents get a rail above the table, my own seat sits below it, and the felt
+     holds nothing but the pot, the street and the board. Nothing can overlap any more. */
+  /* the header was two stacked lines and 71px tall; on a phone that's a seat's worth of
+     screen spent on a title — name and code share one line here */
+  .tbar{padding:6px 10px;padding-top:calc(6px + env(safe-area-inset-top,0px));gap:6px}
+  .tbar .ghost{padding:7px 11px;font-size:13px}
+  .tbar-spacer{width:0}
+  .tbar-mid{flex-direction:row;justify-content:center;gap:8px}
+  #tbl-name{font-size:14px;max-width:38%}
+  .code-chip{padding:3px 10px;font-size:12px;letter-spacing:2px}
+  .teach-btn{font-size:15px;padding:6px 9px}
+  .rail-seats{display:flex;align-items:flex-end;justify-content:center;gap:5px;flex:none;
+    padding:11px 6px 13px;margin:0 3px;min-height:0}
+  /* face-down cards at a seat only say "still in the hand" — small, behind the picture.
+     A hand the promo has revealed is exempt: that one is there to be read. */
+  .rail-seats .pod:not(.me):not(.peeking) .pod-av .pod-cards{top:-9px;transform:translateX(-50%) scale(.68)}
+  .rail-seats .pod-av > .kick-btn{right:-6px;top:-6px;width:19px;height:19px;font-size:10px}
+  /* with the promo on, the hand IS the thing above the picture, so it covers the picture's
+     corners — the ✕ moves down to the name plate, below the cards */
+  .rail-seats .pod.peeking .pod-plate > .kick-btn{top:auto;bottom:-2px;right:-7px}
+  /* the promo banner is a whole seat's worth of height on a phone */
+  .teach-banner{padding:3px 10px;font-size:11px;letter-spacing:0}
+  /* with nothing but the board left on the felt, the oval is a board table, not a ring of
+     seats: it takes its height from what's in it instead of an oval aspect ratio */
+  .felt{margin:2px 6px 0;min-height:calc(var(--board-h) + 56px)}
+  .table-oval{aspect-ratio:auto;height:100%;min-height:calc(var(--board-h) + 56px);border-radius:30%/38%}
+  .rail{border-radius:30%/38%;border-width:9px}
+  .center{top:50%;gap:5px;width:min(94%,340px)}
+  .rail-seats .pod.offtable,.my-hand .pod.offtable{position:static;transform:none;width:auto;
+    flex:1 1 0;min-width:0;max-width:96px;gap:3px}
+  .my-hand .pod.offtable{flex:none;max-width:none;align-items:center}
+  /* in the rail a seat is ~48px wide with eight players: the name goes over the stack, each
+     clipped on its own line, rather than side by side where the stack loses its last digit */
+  .rail-seats .pod:not(.me) .pod-plate{flex-direction:column;align-items:center;gap:0;padding:1px 5px;
+    min-width:0;max-width:100%;width:100%}
+  .rail-seats .pod:not(.me) .pod-name{font-size:9.5px;max-width:100%}
+  .rail-seats .pod:not(.me) .pod-stack{font-size:11px;line-height:1.15}
+  .rail-seats .act-badge{font-size:8px;padding:1.5px 5px;letter-spacing:.3px}
+  .my-hand .pod.offtable .pod-plate{max-width:100%}
+  .rail-seats .pod-secs{display:none}          /* the dock already counts my turn down */
+  .rail-seats .betchip.pod-bet,.my-hand .betchip.pod-bet{display:none}  /* the badge says CALL 60 */
+  /* the action badge hangs UNDER the plate here — above it is the picture */
+  .rail-seats .act-badge{bottom:auto;top:calc(100% - 1px)}
+  .rail-seats .win-float{top:0}
+  :root{--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(31px,9.6vw,46px);--board-gap:4px}
+  .pod{width:60px;gap:3px}
+  .avatar,.pod-av{width:38px;height:38px}
+  .av-emo{font-size:19px}
+  .pod:not(.me) .pod-av .pod-cards{top:-13px}
+  /* one line per opponent — a name over a stack is two lines of furniture on a screen
+     that doesn't have room for one */
+  .pod:not(.me) .pod-plate{flex-direction:row;align-items:baseline;gap:5px;padding:2px 7px;
+    min-width:0;max-width:88px;border-radius:8px}
+  .pod:not(.me) .pod-name{font-size:9.5px;max-width:44px}
+  .pod:not(.me) .pod-stack{font-size:10.5px;line-height:1.1}
+  .pod:not(.me) .pod-best{display:none}
   .pod-plate{padding:2px 7px;min-width:50px;max-width:76px;border-radius:9px}
   .pod-name{font-size:10px;max-width:70px}
   .pod-stack{font-size:11.5px}
   .pod-stack .st-fold,.pod-stack .st-allin{font-size:10px}
   .pod-best{font-size:8.5px;max-width:82px;padding:1px 5px}
   .act-badge{font-size:8.5px;padding:2px 6px;letter-spacing:.4px}
+  /* The lobby was boxed inside the oval, so its settings had to be scrolled inside a
+     306px window — on a phone it gets the whole screen instead and simply fits. */
+  .lobby-box{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(94%,370px);max-height:calc(100dvh - 92px);gap:9px;padding:14px;z-index:30}
+  .lobby-title{font-size:17px}
+  .settings-edit,.settings-grid{gap:7px}
+  .inp.sm{padding:8px 10px;font-size:13.5px}
+  .timer-presets button{padding:7px 3px;font-size:11.5px}
+  .lobby-actions{gap:7px}
+  .lobby-actions .gold.big{padding:13px;font-size:16px}
+  .lobby-share{font-size:11px}
+  .result-banner{top:27%;padding:7px 15px 9px;border-radius:13px}
+  .rb-name,.rb-amt{font-size:18px}
+  .rb-hand{font-size:10.5px}
+  .rb-title{font-size:8px;letter-spacing:2.6px}
   .betchip{font-size:10.5px;padding:2px 7px 2px 4px}
   .chip-dot{width:10px;height:10px}
   .dbtn{width:18px;height:18px;font-size:10px}
@@ -616,7 +720,13 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .bot-tag{font-size:6.5px;padding:1px 3px}
 }
 @media(max-height:780px) and (max-width:979px){
-  :root{--dock-h:252px;--card-w:clamp(33px,9.4vw,44px);--mini-w:clamp(22px,6.4vw,29px);--board-w:clamp(27px,7.4vw,37px)}
+  :root{--dock-h:238px;--card-w:clamp(33px,9.4vw,44px);--mini-w:clamp(22px,6.4vw,29px);--board-w:clamp(29px,8.8vw,42px)}
+  /* a shorter phone: the dock keeps every control, just tighter */
+  .controls{gap:8px;padding:9px 9px 10px}
+  .btn{padding:12px 10px;font-size:15px}
+  .ctl-raise{gap:7px;padding:8px}
+  .chipbtn{padding:7px 5px;font-size:12.5px}
+  .raise-amt-input{padding:8px 10px;font-size:17px}
   .pod{width:74px}
   .avatar,.pod-av{width:46px;height:46px}
   .av-emo{font-size:23px}
@@ -624,8 +734,22 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pod-name{font-size:10.5px}.pod-stack{font-size:12px}
   .pod:not(.me) .pod-av .pod-cards{top:-16px}
 }
+@media(max-height:760px) and (max-width:979px){
+  /* a short phone: the front page must not need scrolling either */
+  .wrap{padding-block:14px}
+  .brand-lockup{gap:3px;margin:4px 0 14px}
+  .logo-mark{width:clamp(72px,22vw,96px);margin-bottom:2px}
+  .brand{font-size:clamp(27px,8vw,34px);letter-spacing:1.8px}
+  .tagline{font-size:12px}
+  .suit-row{font-size:17px}
+  .fake-badge{padding:4px 11px;font-size:11.5px;margin-bottom:6px}
+  .field{gap:5px;margin-bottom:11px}
+  input[type=text],input[type=number],.inp{padding:11px 13px}
+  .gold.big{padding:13px;font-size:16px}
+  .divider{margin:13px 0}
+}
 @media(max-height:670px) and (max-width:979px){
-  :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(24px,6.6vw,32px);--dock-h:234px}
+  :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(29px,8.6vw,38px);--dock-h:216px}
   /* a short phone has no room between the top seat and mine: tighten the middle column so
      the pot clears their plate and the board clears my avatar */
   .center{gap:4px;top:45%}
@@ -637,18 +761,22 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pot-label{font-size:8.5px;letter-spacing:1.8px}
   .pot-amt{font-size:16px}
   .phase{font-size:9px;min-height:10px;letter-spacing:2px}
-  .pod{width:66px}
-  .avatar,.pod-av{width:40px;height:40px}
-  .av-emo{font-size:20px}
+  .pod{width:58px}
+  .avatar,.pod-av{width:36px;height:36px}
+  .av-emo{font-size:18px}
   .pod-best,.me-panel{display:none}              /* reclaim height; sit-out lives in the menu */
   .pod:not(.me) .pod-av .pod-cards{top:-13px}
   .pod-plate{padding:1px 7px;min-width:54px}
-  .felt{margin:3px 4px 1px}
-  .controls{margin:5px 8px 0;padding:8px 8px 10px;gap:8px}
+  .felt{margin:2px 4px 0}
+  .controls{margin:4px 8px 0;padding:8px 8px 9px;gap:7px}
   .ctl-raise{gap:6px;padding:7px}
-  .btn{padding:12px 8px;font-size:15px}
+  .btn{padding:11px 8px;font-size:14.5px}
   .chipbtn{padding:6px 5px;font-size:12px}
-  .raise-amt-input{font-size:17px;padding:7px 10px}
+  .raise-amt-input{font-size:16px;padding:6px 10px}
+  .ctl-timer{margin-top:0}
+  /* every pixel the dock gives back goes to the board */
+  .rail-seats{padding:9px 6px 11px}
+  .my-hand .pod.offtable .pod-cards .card{width:calc(var(--card-w)*1.05);height:calc(var(--card-h)*1.05)}
   .drawer{margin:5px 8px calc(5px + env(safe-area-inset-bottom,0px))}
   .dtab{padding:7px;font-size:12px}
   .tabpane,.log{max-height:104px}
@@ -666,8 +794,10 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 [data-motion="low"] #board .card.deal,
 [data-motion="low"] #board.sweeping .card,
 [data-motion="low"] .seats-layer.sweeping .pod-cards .card,
+[data-motion="low"] .rail-seats.sweeping .pod-cards .card,
 [data-motion="low"] .seats-layer.sweeping .betchip,
 [data-motion="low"] .act-badge.pop,[data-motion="low"] .my-hand.sweeping .card,
+[data-motion="low"] .result-banner,
 [data-motion="low"] .deck.shuffling,[data-motion="low"] .deck.shuffling .dk{animation:none}
 [data-motion="low"] .betchip.fly{display:none}
 [data-motion="low"] .pod.winner .avatar,[data-motion="low"] .pod.active .avatar{
