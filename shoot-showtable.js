@@ -45,8 +45,9 @@ const seed = {
   await page.evaluate(() => { const b = [...document.querySelectorAll("#me-panel button")].find(x => /show my cards/i.test(x.textContent)); if (b) b.click(); });
   await page.waitForTimeout(600);
   const post = await page.evaluate(() => {
-    const pod = document.querySelector("#seats-layer .pod.me");
-    const cards = [...pod.querySelectorAll(".pod-cards .card")];
+    const host = document.querySelector("#my-hand .pod-cards") ? document.getElementById("my-hand")
+                                                               : document.querySelector("#seats-layer .pod.me");
+    const cards = [...host.querySelectorAll(".pod-cards .card")];
     return { total: cards.length, faceUp: cards.filter(c => !c.classList.contains("back")).length,
       onTable: cards.filter(c => c.classList.contains("muck")).length };
   });

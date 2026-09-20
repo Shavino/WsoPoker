@@ -50,7 +50,11 @@ const SIZES = [[390, 844, "iPhone 14"], [360, 640, "small android"], [1366, 768,
     await page.screenshot({ path: path.join(dir, "shots", "fit-" + w + "x" + h + ".png") });
     await ctx.close();
     const bottomMost = Math.max(m.controls ? m.controls.bottom : 0, m.drawer ? m.drawer.bottom : 0);
-    const ok = !m.scrollable && bottomMost <= m.vh && m.oval && m.oval.h >= 240 && errs.length === 0;
+    // the table has to stay a reasonable share of the screen. On a phone my hand and the
+    // fixed-size action dock take their cut first, so the bar scales with the viewport
+    // rather than being a flat pixel count.
+    const minOval = Math.min(240, Math.round(m.vh * 0.33));
+    const ok = !m.scrollable && bottomMost <= m.vh && m.oval && m.oval.h >= minOval && errs.length === 0;
     if (!ok) allOk = false;
     console.log(label.padEnd(14) + w + "x" + h +
       "  scrollable=" + m.scrollable +

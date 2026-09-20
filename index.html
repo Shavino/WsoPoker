@@ -327,6 +327,14 @@ input.shake{animation:shake .4s}
 /* my (bottom) cards a touch larger for readability */
 .pod.me .pod-cards .card{width:var(--card-w);height:var(--card-h)}
 
+/* ---------- my hand, on a phone ------------------------------------------
+   Below 980px my two cards leave the felt and sit in their own row between the
+   table and the buttons. On a phone the oval is small enough that a hand held at
+   my seat lands on top of the community cards — and they're bigger and easier to
+   read down here anyway. Hidden entirely on a desktop, where the pod holds them. */
+.my-hand{display:none}
+.my-hand.sweeping .card{animation:sweepOff .62s cubic-bezier(.45,0,.9,.55) both}
+
 /* me panel — a slim utility bar (cards live in my pod) */
 .me-panel{margin:5px 12px 0;display:flex;justify-content:center}
 .me-panel.has-action{display:flex!important}   /* never hide the Show-cards choice */
@@ -586,6 +594,11 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   background:radial-gradient(circle at 34% 30%,#fff,#f0e6cf);border:2px solid var(--gold-deep);box-shadow:0 2px 5px rgba(0,0,0,.5);cursor:pointer}
 .sp-row>input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#f4ead4;border:2px solid var(--gold-deep);cursor:pointer}
 
+/* the action dock never changes size, so the buttons never move under your thumb */
+.controls.idle{align-items:center;justify-content:center}
+.ctl-idle{color:var(--muted);font-size:13.5px;letter-spacing:.3px;text-align:center;padding:6px 4px}
+@media(min-width:980px){.controls.idle{display:none}}   /* desktop: exactly as before */
+
 /* sound + style buttons in the top bar */
 .tbar-tools{display:flex;align-items:center;gap:6px;flex:none}
 .sound-btn,.theme-btn{min-width:0;font-size:16px;padding:9px 11px;line-height:1}
@@ -609,8 +622,42 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 .tp-note{font-size:11px;color:var(--faint);line-height:1.4}
 .tp-note b{color:var(--muted)}
 
+@media(max-width:979px){
+  /* bets sit tight against their own seat here. Floating them out toward the middle is
+     fine on a big table, but on a phone that's exactly where the board is. */
+  .betchip.pod-bet.above{bottom:calc(100% - 5px)}
+  .betchip.pod-bet.below{top:calc(100% - 5px)}
+  .my-hand{display:flex;justify-content:center;align-items:flex-end;flex:none;
+    height:calc(var(--card-h)*1.14 + 6px);margin:2px 12px 0}
+  .my-hand .pod-cards{display:flex;gap:7px;justify-content:center}
+  .my-hand .card{width:calc(var(--card-w)*1.14);height:calc(var(--card-h)*1.14)}
+  .my-hand .card .cr{font-size:calc(var(--card-w)*.57)}
+  .my-hand .card .cs{font-size:calc(var(--card-w)*.48)}
+  /* one fixed-size dock for every state: my turn, someone else's, between hands */
+  .controls{min-height:var(--dock-h,266px);justify-content:flex-start}
+  .quick{flex-wrap:nowrap}
+  /* A phone can't hold eight full-size seats around a small oval: the plates and the
+     peeking cards end up sitting on the community cards. Everything at the seats gets
+     smaller here, and the seats themselves sit further out (see seatXY), which leaves the
+     middle of the felt to the board. */
+  :root{--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(26px,7.2vw,38px);--board-gap:4px}
+  .pod{width:68px;gap:3px}
+  .avatar,.pod-av{width:42px;height:42px}
+  .av-emo{font-size:21px}
+  .pod:not(.me) .pod-av .pod-cards{top:-14px}
+  .pod-plate{padding:2px 7px;min-width:50px;max-width:76px;border-radius:9px}
+  .pod-name{font-size:10px;max-width:70px}
+  .pod-stack{font-size:11.5px}
+  .pod-stack .st-fold,.pod-stack .st-allin{font-size:10px}
+  .pod-best{font-size:8.5px;max-width:82px;padding:1px 5px}
+  .act-badge{font-size:8.5px;padding:2px 6px;letter-spacing:.4px}
+  .betchip{font-size:10.5px;padding:2px 7px 2px 4px}
+  .chip-dot{width:10px;height:10px}
+  .dbtn{width:18px;height:18px;font-size:10px}
+  .bot-tag{font-size:6.5px;padding:1px 3px}
+}
 @media(max-height:780px) and (max-width:979px){
-  :root{--card-w:clamp(33px,9.4vw,44px);--mini-w:clamp(22px,6.4vw,29px);--board-w:clamp(27px,7.4vw,37px)}
+  :root{--dock-h:252px;--card-w:clamp(33px,9.4vw,44px);--mini-w:clamp(22px,6.4vw,29px);--board-w:clamp(27px,7.4vw,37px)}
   .pod{width:74px}
   .avatar,.pod-av{width:46px;height:46px}
   .av-emo{font-size:23px}
@@ -619,7 +666,18 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pod:not(.me) .pod-av .pod-cards{top:-16px}
 }
 @media(max-height:670px) and (max-width:979px){
-  :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(20px,5.8vw,25px);--board-w:clamp(24px,6.6vw,32px)}
+  :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(24px,6.6vw,32px);--dock-h:234px}
+  /* a short phone has no room between the top seat and mine: tighten the middle column so
+     the pot clears their plate and the board clears my avatar */
+  .center{gap:4px;top:45%}
+  /* There is no felt to spare between the seats and the board on a screen this short, so
+     the seat chips go: the action badge on the seat already says CALL 60 / BET 60, and the
+     chips still fly into the pot when the street closes. */
+  .betchip.pod-bet{display:none}
+  .pot{padding:3px 13px;gap:7px}
+  .pot-label{font-size:8.5px;letter-spacing:1.8px}
+  .pot-amt{font-size:16px}
+  .phase{font-size:9px;min-height:10px;letter-spacing:2px}
   .pod{width:66px}
   .avatar,.pod-av{width:40px;height:40px}
   .av-emo{font-size:20px}
@@ -650,7 +708,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 [data-motion="low"] #board.sweeping .card,
 [data-motion="low"] .seats-layer.sweeping .pod-cards .card,
 [data-motion="low"] .seats-layer.sweeping .betchip,
-[data-motion="low"] .act-badge.pop,
+[data-motion="low"] .act-badge.pop,[data-motion="low"] .my-hand.sweeping .card,
 [data-motion="low"] .deck.shuffling,[data-motion="low"] .deck.shuffling .dk{animation:none}
 [data-motion="low"] .betchip.fly{display:none}
 [data-motion="low"] .pod.winner .avatar,[data-motion="low"] .pod.active .avatar{
@@ -1736,10 +1794,14 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   var listeners = [];
   var processing = false, processingSince = 0, myReqAt = 0;
   var hostTimer = null, presenceTimer = null, uiTimer = null, lastBeat = 0;
-  var lastCtlSig = null, lastLobbySig = null, lastBoardHand = -1, lastBoardN = 0, lastDealtHand = -1, dealAnim = false, lastBoardTeach = false;
+  var lastCtlSig = null, lastIdleMsg = null, lastLobbySig = null, lastBoardHand = -1, lastBoardN = 0, lastDealtHand = -1, dealAnim = false, lastBoardTeach = false;
   var revealAnimHand = -1, revealAt = 0, flipReveal = false, winMap = {}, lastBets = {}, dealAt = 0;
   var foldAt = {}, showAt = {}, foldHand = -1;   // when cards hit the table (drives the toss animation)
   var actSig = {}, actAt = {};                   // what each player last did, and when it appeared
+  // On a phone the table is too small to hold my own cards without them landing on the
+  // community cards, so below this width my hand moves out of the felt and into its own
+  // row just above the buttons — the way every poker app on a phone does it.
+  function phoneLayout() { return window.innerWidth < 980; }
   var DEAL_STEP = 0.09;                          // seconds between cards — a dealer's rhythm
   var SWEEP_MS = 700;                            // how long the dealer takes to clear the table
   var SHUFFLE_MS = 1100;                         // …and to riffle the deck afterwards
@@ -2452,6 +2514,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
           '<div id="lobby-box" class="lobby-box" hidden></div>' +
         '</div>' +
       '</main>' +
+      '<div id="my-hand" class="my-hand"></div>' +
       '<div class="sidecol">' +
       '<section id="me-panel" class="me-panel"></section>' +
       '<section id="controls" class="controls" hidden></section>' +
@@ -2603,6 +2666,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   // position of seat k of n around the oval (percent of the oval box). k=0 = bottom (me).
   function seatXY(k, n) {
     var cx = 50, cy = 46, rx = 38, ry = 34;
+    if (phoneLayout()) { rx = 41.5; ry = 37.5; }   // phones: seats hug the rail, board keeps the middle
     var a = (90 + k * 360 / n) * Math.PI / 180;
     return { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a), a: a };
   }
@@ -2669,7 +2733,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   }
   function applyCardOrigins() {
     var a = deckAnchor(); if (!a) return;
-    var dealt = document.querySelectorAll("#seats-layer .card.deal, #board .card.deal");
+    var dealt = document.querySelectorAll("#seats-layer .card.deal, #board .card.deal, #my-hand .card.deal");
     if (dealt.length) {
       // zero the offsets first: the card is already sitting on its 0% keyframe, and
       // measuring it there would fold the old offset into the new one. Rotation and
@@ -2691,7 +2755,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
       // whenever anything else updated mid-sweep (a heartbeat, someone showing their cards).
       // Anchoring the delay to when the sweep began makes a fresh element pick the animation
       // up where it already was, and land finished once the sweep is over.
-      document.querySelectorAll("#seats-layer .pod-cards .card").forEach(function (c) {
+      document.querySelectorAll("#seats-layer .pod-cards .card, #my-hand .pod-cards .card").forEach(function (c) {
         setOrigin(c, a, "--sx", "--sy");
         c.style.animationDelay = (-elapsed).toFixed(2) + "s";
       });
@@ -2730,6 +2794,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     var on = !!(g && g.handOver && g.handNo === sweptHand);
     var b = $("board"); if (b) b.classList.toggle("sweeping", on);
     var sl = $("seats-layer"); if (sl) sl.classList.toggle("sweeping", on);
+    var mh = $("my-hand"); if (mh) mh.classList.toggle("sweeping", on);
   }
 
   /* ---------- dealing, one card at a time --------------------------------
@@ -2824,9 +2889,9 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 
   // One unified seat renderer: everyone (including me) gets a pod around the oval.
   function renderSeats() {
-    var layer = $("seats-layer");
+    var layer = $("seats-layer"), hand = $("my-hand");
     if (!layer) return;
-    layer.innerHTML = "";
+    layer.innerHTML = ""; if (hand) hand.innerHTML = "";
     var g = cur.game;
 
     if (!g || !g.players) {
@@ -2952,7 +3017,12 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
       }
       return cards;
     }
-    if (mine) pod.appendChild(buildCards(""));
+    if (mine) {
+      var myCards = buildCards("");
+      var hand = $("my-hand");
+      if (phoneLayout() && hand) hand.appendChild(myCards);   // own row under the table
+      else pod.appendChild(myCards);
+    }
 
     // avatar with dealer button + timer ring (+ opponents' peeking cards behind it)
     var avwrap = el("div", "pod-av");
@@ -3192,11 +3262,29 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 
   function renderControls() {
     var box = $("controls");
-    if (!isMyTurn()) { box.hidden = true; box.innerHTML = ""; lastCtlSig = null; return; }
+    // Not my turn: the dock stays exactly where it is, holding its size, with a status in
+    // it. It used to be hidden outright — which resized the table and moved every button on
+    // the screen twice a turn, so you'd reach for Call and find Fold there instead.
+    // (On a desktop the dock lives in the side column and is hidden as before.)
+    if (!isMyTurn()) {
+      box.hidden = false; box.classList.add("idle");
+      var g0 = cur.game, me0 = myGamePlayer();
+      var who = (g0 && !g0.handOver && g0.toAct != null && g0.players && g0.players[g0.toAct]) ? g0.players[g0.toAct].name : null;
+      var msg = !g0 ? "Waiting to start\u2026"
+        : g0.handOver ? countdownText()
+        : (me0 && me0.folded) ? "You folded"
+        : (me0 && me0.allIn) ? "You're all in"
+        : who ? who + " to act\u2026" : "Waiting\u2026";
+      // only touch the DOM when the words actually change — this runs on every update the
+      // table receives, and rewriting it each time made the text flicker
+      if (msg !== lastIdleMsg) { lastIdleMsg = msg; box.innerHTML = '<div class="ctl-idle">' + esc(msg) + "</div>"; }
+      lastCtlSig = null; return;
+    }
+    box.classList.remove("idle"); lastIdleMsg = null;
     var g = cur.game;
     var me = myGamePlayer();
     var la = E.legalActions(g);
-    if (!la) { box.hidden = true; box.innerHTML = ""; lastCtlSig = null; return; }
+    if (!la) { box.hidden = false; box.classList.add("idle"); box.innerHTML = '<div class="ctl-idle">Waiting\u2026</div>'; lastCtlSig = null; return; }
     // Only rebuild when the decision actually changes — otherwise leave the slider/buttons alone
     // so background updates (presence pings, pot changes) don't reset them mid-action.
     var sig = [g.handNo, g.toAct, g.currentBet, g.minRaise, me.bet, me.stack, g.phase].join("|");
@@ -3439,6 +3527,10 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     } else {
       show("home");
     }
+    var wasPhone = phoneLayout();
+    window.addEventListener("resize", function () {
+      if (phoneLayout() !== wasPhone) { wasPhone = phoneLayout(); render(); }
+    });
     window.addEventListener("beforeunload", function () { try { if (cur.ref) cur.ref.child("presence/" + clientId).remove(); } catch (e) {} });
   }
 

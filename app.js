@@ -145,10 +145,14 @@
   var listeners = [];
   var processing = false, processingSince = 0, myReqAt = 0;
   var hostTimer = null, presenceTimer = null, uiTimer = null, lastBeat = 0;
-  var lastCtlSig = null, lastLobbySig = null, lastBoardHand = -1, lastBoardN = 0, lastDealtHand = -1, dealAnim = false, lastBoardTeach = false;
+  var lastCtlSig = null, lastIdleMsg = null, lastLobbySig = null, lastBoardHand = -1, lastBoardN = 0, lastDealtHand = -1, dealAnim = false, lastBoardTeach = false;
   var revealAnimHand = -1, revealAt = 0, flipReveal = false, winMap = {}, lastBets = {}, dealAt = 0;
   var foldAt = {}, showAt = {}, foldHand = -1;   // when cards hit the table (drives the toss animation)
   var actSig = {}, actAt = {};                   // what each player last did, and when it appeared
+  // On a phone the table is too small to hold my own cards without them landing on the
+  // community cards, so below this width my hand moves out of the felt and into its own
+  // row just above the buttons — the way every poker app on a phone does it.
+  function phoneLayout() { return window.innerWidth < 980; }
   var DEAL_STEP = 0.09;                          // seconds between cards — a dealer's rhythm
   var SWEEP_MS = 700;                            // how long the dealer takes to clear the table
   var SHUFFLE_MS = 1100;                         // …and to riffle the deck afterwards
@@ -861,6 +865,7 @@
           '<div id="lobby-box" class="lobby-box" hidden></div>' +
         '</div>' +
       '</main>' +
+      '<div id="my-hand" class="my-hand"></div>' +
       '<div class="sidecol">' +
       '<section id="me-panel" class="me-panel"></section>' +
       '<section id="controls" class="controls" hidden></section>' +
@@ -1012,6 +1017,7 @@
   // position of seat k of n around the oval (percent of the oval box). k=0 = bottom (me).
   function seatXY(k, n) {
     var cx = 50, cy = 46, rx = 38, ry = 34;
+    if (phoneLayout()) { rx = 41.5; ry = 37.5; }   // phones: seats hug the rail, board keeps the middle
     var a = (90 + k * 360 / n) * Math.PI / 180;
     return { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a), a: a };
   }
@@ -1078,7 +1084,7 @@
   }
   function applyCardOrigins() {
     var a = deckAnchor(); if (!a) return;
-    var dealt = document.querySelectorAll("#seats-layer .card.deal, #board .card.deal");
+    var dealt = document.querySelectorAll("#seats-layer .card.deal, #board .card.deal, #my-hand .card.deal");
     if (dealt.length) {
       // zero the offsets first: the card is already sitting on its 0% keyframe, and
       // measuring it there would fold the old offset into the new one. Rotation and
@@ -1100,7 +1106,7 @@
       // whenever anything else updated mid-sweep (a heartbeat, someone showing their cards).
       // Anchoring the delay to when the sweep began makes a fresh element pick the animation
       // up where it already was, and land finished once the sweep is over.
-      document.querySelectorAll("#seats-layer .pod-cards .card").forEach(function (c) {
+      document.querySelectorAll("#seats-layer .pod-cards .card, #my-hand .pod-cards .card").forEach(function (c) {
         setOrigin(c, a, "--sx", "--sy");
         c.style.animationDelay = (-elapsed).toFixed(2) + "s";
       });
@@ -1139,6 +1145,7 @@
     var on = !!(g && g.handOver && g.handNo === sweptHand);
     var b = $("board"); if (b) b.classList.toggle("sweeping", on);
     var sl = $("seats-layer"); if (sl) sl.classList.toggle("sweeping", on);
+    var mh = $("my-hand"); if (mh) mh.classList.toggle("sweeping", on);
   }
 
   /* ---------- dealing, one card at a time --------------------------------
@@ -1233,9 +1240,9 @@
 
   // One unified seat renderer: everyone (including me) gets a pod around the oval.
   function renderSeats() {
-    var layer = $("seats-layer");
+    var layer = $("seats-layer"), hand = $("my-hand");
     if (!layer) return;
-    layer.innerHTML = "";
+    layer.innerHTML = ""; if (hand) hand.innerHTML = "";
     var g = cur.game;
 
     if (!g || !g.players) {
@@ -1361,7 +1368,12 @@
       }
       return cards;
     }
-    if (mine) pod.appendChild(buildCards(""));
+    if (mine) {
+      var myCards = buildCards("");
+      var hand = $("my-hand");
+      if (phoneLayout() && hand) hand.appendChild(myCards);   // own row under the table
+      else pod.appendChild(myCards);
+    }
 
     // avatar with dealer button + timer ring (+ opponents' peeking cards behind it)
     var avwrap = el("div", "pod-av");
@@ -1601,11 +1613,29 @@
 
   function renderControls() {
     var box = $("controls");
-    if (!isMyTurn()) { box.hidden = true; box.innerHTML = ""; lastCtlSig = null; return; }
+    // Not my turn: the dock stays exactly where it is, holding its size, with a status in
+    // it. It used to be hidden outright — which resized the table and moved every button on
+    // the screen twice a turn, so you'd reach for Call and find Fold there instead.
+    // (On a desktop the dock lives in the side column and is hidden as before.)
+    if (!isMyTurn()) {
+      box.hidden = false; box.classList.add("idle");
+      var g0 = cur.game, me0 = myGamePlayer();
+      var who = (g0 && !g0.handOver && g0.toAct != null && g0.players && g0.players[g0.toAct]) ? g0.players[g0.toAct].name : null;
+      var msg = !g0 ? "Waiting to start\u2026"
+        : g0.handOver ? countdownText()
+        : (me0 && me0.folded) ? "You folded"
+        : (me0 && me0.allIn) ? "You're all in"
+        : who ? who + " to act\u2026" : "Waiting\u2026";
+      // only touch the DOM when the words actually change — this runs on every update the
+      // table receives, and rewriting it each time made the text flicker
+      if (msg !== lastIdleMsg) { lastIdleMsg = msg; box.innerHTML = '<div class="ctl-idle">' + esc(msg) + "</div>"; }
+      lastCtlSig = null; return;
+    }
+    box.classList.remove("idle"); lastIdleMsg = null;
     var g = cur.game;
     var me = myGamePlayer();
     var la = E.legalActions(g);
-    if (!la) { box.hidden = true; box.innerHTML = ""; lastCtlSig = null; return; }
+    if (!la) { box.hidden = false; box.classList.add("idle"); box.innerHTML = '<div class="ctl-idle">Waiting\u2026</div>'; lastCtlSig = null; return; }
     // Only rebuild when the decision actually changes — otherwise leave the slider/buttons alone
     // so background updates (presence pings, pot changes) don't reset them mid-action.
     var sig = [g.handNo, g.toAct, g.currentBet, g.minRaise, me.bet, me.stack, g.phase].join("|");
@@ -1848,6 +1878,10 @@
     } else {
       show("home");
     }
+    var wasPhone = phoneLayout();
+    window.addEventListener("resize", function () {
+      if (phoneLayout() !== wasPhone) { wasPhone = phoneLayout(); render(); }
+    });
     window.addEventListener("beforeunload", function () { try { if (cur.ref) cur.ref.child("presence/" + clientId).remove(); } catch (e) {} });
   }
 

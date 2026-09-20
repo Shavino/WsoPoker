@@ -276,6 +276,14 @@ input.shake{animation:shake .4s}
 /* my (bottom) cards a touch larger for readability */
 .pod.me .pod-cards .card{width:var(--card-w);height:var(--card-h)}
 
+/* ---------- my hand, on a phone ------------------------------------------
+   Below 980px my two cards leave the felt and sit in their own row between the
+   table and the buttons. On a phone the oval is small enough that a hand held at
+   my seat lands on top of the community cards — and they're bigger and easier to
+   read down here anyway. Hidden entirely on a desktop, where the pod holds them. */
+.my-hand{display:none}
+.my-hand.sweeping .card{animation:sweepOff .62s cubic-bezier(.45,0,.9,.55) both}
+
 /* me panel — a slim utility bar (cards live in my pod) */
 .me-panel{margin:5px 12px 0;display:flex;justify-content:center}
 .me-panel.has-action{display:flex!important}   /* never hide the Show-cards choice */
@@ -535,6 +543,11 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   background:radial-gradient(circle at 34% 30%,#fff,#f0e6cf);border:2px solid var(--gold-deep);box-shadow:0 2px 5px rgba(0,0,0,.5);cursor:pointer}
 .sp-row>input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#f4ead4;border:2px solid var(--gold-deep);cursor:pointer}
 
+/* the action dock never changes size, so the buttons never move under your thumb */
+.controls.idle{align-items:center;justify-content:center}
+.ctl-idle{color:var(--muted);font-size:13.5px;letter-spacing:.3px;text-align:center;padding:6px 4px}
+@media(min-width:980px){.controls.idle{display:none}}   /* desktop: exactly as before */
+
 /* sound + style buttons in the top bar */
 .tbar-tools{display:flex;align-items:center;gap:6px;flex:none}
 .sound-btn,.theme-btn{min-width:0;font-size:16px;padding:9px 11px;line-height:1}
@@ -558,8 +571,42 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 .tp-note{font-size:11px;color:var(--faint);line-height:1.4}
 .tp-note b{color:var(--muted)}
 
+@media(max-width:979px){
+  /* bets sit tight against their own seat here. Floating them out toward the middle is
+     fine on a big table, but on a phone that's exactly where the board is. */
+  .betchip.pod-bet.above{bottom:calc(100% - 5px)}
+  .betchip.pod-bet.below{top:calc(100% - 5px)}
+  .my-hand{display:flex;justify-content:center;align-items:flex-end;flex:none;
+    height:calc(var(--card-h)*1.14 + 6px);margin:2px 12px 0}
+  .my-hand .pod-cards{display:flex;gap:7px;justify-content:center}
+  .my-hand .card{width:calc(var(--card-w)*1.14);height:calc(var(--card-h)*1.14)}
+  .my-hand .card .cr{font-size:calc(var(--card-w)*.57)}
+  .my-hand .card .cs{font-size:calc(var(--card-w)*.48)}
+  /* one fixed-size dock for every state: my turn, someone else's, between hands */
+  .controls{min-height:var(--dock-h,266px);justify-content:flex-start}
+  .quick{flex-wrap:nowrap}
+  /* A phone can't hold eight full-size seats around a small oval: the plates and the
+     peeking cards end up sitting on the community cards. Everything at the seats gets
+     smaller here, and the seats themselves sit further out (see seatXY), which leaves the
+     middle of the felt to the board. */
+  :root{--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(26px,7.2vw,38px);--board-gap:4px}
+  .pod{width:68px;gap:3px}
+  .avatar,.pod-av{width:42px;height:42px}
+  .av-emo{font-size:21px}
+  .pod:not(.me) .pod-av .pod-cards{top:-14px}
+  .pod-plate{padding:2px 7px;min-width:50px;max-width:76px;border-radius:9px}
+  .pod-name{font-size:10px;max-width:70px}
+  .pod-stack{font-size:11.5px}
+  .pod-stack .st-fold,.pod-stack .st-allin{font-size:10px}
+  .pod-best{font-size:8.5px;max-width:82px;padding:1px 5px}
+  .act-badge{font-size:8.5px;padding:2px 6px;letter-spacing:.4px}
+  .betchip{font-size:10.5px;padding:2px 7px 2px 4px}
+  .chip-dot{width:10px;height:10px}
+  .dbtn{width:18px;height:18px;font-size:10px}
+  .bot-tag{font-size:6.5px;padding:1px 3px}
+}
 @media(max-height:780px) and (max-width:979px){
-  :root{--card-w:clamp(33px,9.4vw,44px);--mini-w:clamp(22px,6.4vw,29px);--board-w:clamp(27px,7.4vw,37px)}
+  :root{--dock-h:252px;--card-w:clamp(33px,9.4vw,44px);--mini-w:clamp(22px,6.4vw,29px);--board-w:clamp(27px,7.4vw,37px)}
   .pod{width:74px}
   .avatar,.pod-av{width:46px;height:46px}
   .av-emo{font-size:23px}
@@ -568,7 +615,18 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pod:not(.me) .pod-av .pod-cards{top:-16px}
 }
 @media(max-height:670px) and (max-width:979px){
-  :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(20px,5.8vw,25px);--board-w:clamp(24px,6.6vw,32px)}
+  :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(24px,6.6vw,32px);--dock-h:234px}
+  /* a short phone has no room between the top seat and mine: tighten the middle column so
+     the pot clears their plate and the board clears my avatar */
+  .center{gap:4px;top:45%}
+  /* There is no felt to spare between the seats and the board on a screen this short, so
+     the seat chips go: the action badge on the seat already says CALL 60 / BET 60, and the
+     chips still fly into the pot when the street closes. */
+  .betchip.pod-bet{display:none}
+  .pot{padding:3px 13px;gap:7px}
+  .pot-label{font-size:8.5px;letter-spacing:1.8px}
+  .pot-amt{font-size:16px}
+  .phase{font-size:9px;min-height:10px;letter-spacing:2px}
   .pod{width:66px}
   .avatar,.pod-av{width:40px;height:40px}
   .av-emo{font-size:20px}
@@ -599,7 +657,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 [data-motion="low"] #board.sweeping .card,
 [data-motion="low"] .seats-layer.sweeping .pod-cards .card,
 [data-motion="low"] .seats-layer.sweeping .betchip,
-[data-motion="low"] .act-badge.pop,
+[data-motion="low"] .act-badge.pop,[data-motion="low"] .my-hand.sweeping .card,
 [data-motion="low"] .deck.shuffling,[data-motion="low"] .deck.shuffling .dk{animation:none}
 [data-motion="low"] .betchip.fly{display:none}
 [data-motion="low"] .pod.winner .avatar,[data-motion="low"] .pod.active .avatar{

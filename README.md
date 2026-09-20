@@ -54,6 +54,7 @@ node shoot-style.js      # the style picker: 6 backgrounds / 6 tables / 6 decks,
 node shoot-anim.js       # cards dealt off the deck, swept back into it, riffled; nothing shown mid-hand
 node shoot-promo.js      # promo code: hidden, wrong codes refused, right one reveals the table
 node shoot-table-feel.js # seat action badges, bets sliding to the pot, the log, motion setting
+node shoot-phone.js      # phone layout: hand clear of the board, dock never moves, desktop untouched
 ```
 
 > The mock database in `mockfb.js` deliberately mimics a real Firebase quirk: it **drops
@@ -99,6 +100,17 @@ POKER_CODE="YOUR-NEW-CODE" node build.js     # prints a new salt + key to paste 
   (`poker_bg` / `poker_table` / `poker_cards`) and changes nothing for anyone else at the table.
   A style is only a set of CSS variables, switched by `data-bg` / `data-table` / `data-cards` on
   `<html>` — adding a seventh is a few lines at the bottom of `styles.css` plus one entry in `THEMES`.
+- **On a phone the layout is a different shape.** Below 980px two things change, and both
+  are load-bearing. My own two cards leave the felt and get their own row between the table
+  and the buttons (`phoneLayout()` in `renderSeats` puts them in `#my-hand` instead of my
+  pod) — on a small oval a hand held at my seat sits on top of the community cards, which
+  made the game genuinely unplayable. And the action dock keeps a fixed height in every
+  state (`--dock-h`, with an `.idle` state instead of `hidden`): it used to disappear
+  whenever it wasn't my turn, which resized the table and moved every button on screen
+  twice a turn, so you'd reach for Call and hit Fold. The seats are also smaller and sit
+  further out on a phone (`seatXY` widens the ring), and on very short screens the per-seat
+  bet chips are dropped — the action badge already carries the number. `shoot-phone.js`
+  measures all of it, including that the desktop layout is untouched.
 - **The table tells you what happened, not a text feed.** When someone acts, a badge appears
   on *their seat* — FOLD, CHECK, CALL 20, RAISE 200, ALL IN — and stays there until the street
   clears, exactly as it does on a real client. The engine records it as `p.act` and `resetRound()`
