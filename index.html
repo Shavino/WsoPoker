@@ -241,6 +241,7 @@ input.shake{animation:shake .4s}
   padding:0;box-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:auto;opacity:.82;
   transition:background .15s,transform .1s,opacity .15s}
 .kick-btn:hover{background:linear-gradient(180deg,#9b3b45,#61242c);color:#fff;transform:scale(1.12);opacity:1}
+.pod-plate > .kick-btn{top:auto;bottom:-12px;right:-11px}
 .pod.lobby .pod-av{width:auto;height:auto}
 
 .ring{position:absolute;inset:-5px;z-index:3;border-radius:50%;padding:3px;pointer-events:none;
@@ -515,6 +516,12 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 }
 #board .card.deal{animation:boardIn .58s cubic-bezier(.2,.86,.26,1) both}
 .card.peek{opacity:.46;filter:grayscale(.5)}
+/* With the promo on, a peeked hand is no use tucked behind the player's picture — it comes
+   out in front of it, bigger, and only lightly greyed so it can actually be read. */
+.pod.peeking .pod-av .pod-cards{z-index:7;top:-4px}
+.pod.peeking .pod-av .pod-cards .card{width:calc(var(--mini-w)*1.5);height:calc(var(--mini-h)*1.5);
+  box-shadow:0 5px 14px rgba(0,0,0,.8),0 0 0 1px rgba(0,0,0,.5)}
+.pod.peeking .card.peek{opacity:.9;filter:grayscale(.42)}
 
 /* ---------- cards leaving the table before the next hand ------------------ */
 @keyframes sweepOff{
@@ -546,6 +553,29 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 .pod-av,.pod-cards{perspective:520px}
 @keyframes cardFlip{0%{transform:rotateY(74deg) scale(.95);opacity:.4}55%{opacity:1}100%{transform:rotateY(0) scale(1);opacity:1}}
 .card.flip{animation:cardFlip .5s ease-out both;transform-origin:center}
+
+/* ---------- who won, said out loud ---------------------------------------
+   Sits over the middle of the table for the few seconds between the hand ending
+   and the dealer collecting the cards. */
+.result-banner{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);z-index:14;
+  min-width:min(58%,220px);max-width:min(90%,360px);padding:9px 20px 11px;border-radius:15px;
+  background:linear-gradient(180deg,rgba(43,33,14,.97),rgba(17,13,7,.97));
+  border:1px solid var(--gold);text-align:center;pointer-events:none;
+  box-shadow:0 18px 46px rgba(0,0,0,.72),0 0 0 1px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.14),0 0 38px rgba(232,190,99,.22);
+  animation:rbIn .42s cubic-bezier(.2,1.12,.35,1) both}
+.rb-title{font-size:9px;letter-spacing:3.4px;text-transform:uppercase;color:var(--gold);font-weight:800;opacity:.95}
+.rb-row{display:flex;align-items:baseline;justify-content:center;gap:9px;margin-top:2px;flex-wrap:wrap}
+.rb-name{font-family:"Oswald",sans-serif;font-size:21px;letter-spacing:.5px;color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,.7);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb-amt{font-family:"Oswald",sans-serif;font-size:21px;color:var(--gold-2);
+  text-shadow:0 1px 10px rgba(232,190,99,.45)}
+.rb-hand{font-size:11.5px;color:#dbe3ee;margin-top:3px;letter-spacing:.3px;line-height:1.3}
+@keyframes rbIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+  62%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.a-win{background:linear-gradient(180deg,var(--gold-2),var(--gold));color:#2a1e05;
+  border-color:rgba(255,255,255,.45);box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 16px rgba(232,190,99,.5)}
 
 /* winner celebration: gold pulse + rising chips */
 @keyframes winGlow{0%,100%{box-shadow:0 4px 12px rgba(0,0,0,.55),0 0 0 3px rgba(240,210,144,.9),0 0 24px rgba(240,210,144,.6)}
@@ -650,16 +680,38 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
      smaller here, and the seats themselves sit further out (see seatXY), which leaves the
      middle of the felt to the board. */
   :root{--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(26px,7.2vw,38px);--board-gap:4px}
-  .pod{width:68px;gap:3px}
-  .avatar,.pod-av{width:42px;height:42px}
-  .av-emo{font-size:21px}
-  .pod:not(.me) .pod-av .pod-cards{top:-14px}
+  .pod{width:60px;gap:3px}
+  .avatar,.pod-av{width:38px;height:38px}
+  .av-emo{font-size:19px}
+  .pod:not(.me) .pod-av .pod-cards{top:-13px}
+  /* one line per opponent — a name over a stack is two lines of furniture on a screen
+     that doesn't have room for one */
+  .pod:not(.me) .pod-plate{flex-direction:row;align-items:baseline;gap:5px;padding:2px 7px;
+    min-width:0;max-width:88px;border-radius:8px}
+  .pod:not(.me) .pod-name{font-size:9.5px;max-width:44px}
+  .pod:not(.me) .pod-stack{font-size:10.5px;line-height:1.1}
+  .pod:not(.me) .pod-best{display:none}
   .pod-plate{padding:2px 7px;min-width:50px;max-width:76px;border-radius:9px}
   .pod-name{font-size:10px;max-width:70px}
   .pod-stack{font-size:11.5px}
   .pod-stack .st-fold,.pod-stack .st-allin{font-size:10px}
   .pod-best{font-size:8.5px;max-width:82px;padding:1px 5px}
   .act-badge{font-size:8.5px;padding:2px 6px;letter-spacing:.4px}
+  /* The lobby was boxed inside the oval, so its settings had to be scrolled inside a
+     306px window — on a phone it gets the whole screen instead and simply fits. */
+  .lobby-box{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(94%,370px);max-height:calc(100dvh - 92px);gap:9px;padding:14px;z-index:30}
+  .lobby-title{font-size:17px}
+  .settings-edit,.settings-grid{gap:7px}
+  .inp.sm{padding:8px 10px;font-size:13.5px}
+  .timer-presets button{padding:7px 3px;font-size:11.5px}
+  .lobby-actions{gap:7px}
+  .lobby-actions .gold.big{padding:13px;font-size:16px}
+  .lobby-share{font-size:11px}
+  .result-banner{top:27%;padding:7px 15px 9px;border-radius:13px}
+  .rb-name,.rb-amt{font-size:18px}
+  .rb-hand{font-size:10.5px}
+  .rb-title{font-size:8px;letter-spacing:2.6px}
   .betchip{font-size:10.5px;padding:2px 7px 2px 4px}
   .chip-dot{width:10px;height:10px}
   .dbtn{width:18px;height:18px;font-size:10px}
@@ -675,6 +727,20 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pod-name{font-size:10.5px}.pod-stack{font-size:12px}
   .pod:not(.me) .pod-av .pod-cards{top:-16px}
 }
+@media(max-height:760px) and (max-width:979px){
+  /* a short phone: the front page must not need scrolling either */
+  .wrap{padding-block:14px}
+  .brand-lockup{gap:3px;margin:4px 0 14px}
+  .logo-mark{width:clamp(72px,22vw,96px);margin-bottom:2px}
+  .brand{font-size:clamp(27px,8vw,34px);letter-spacing:1.8px}
+  .tagline{font-size:12px}
+  .suit-row{font-size:17px}
+  .fake-badge{padding:4px 11px;font-size:11.5px;margin-bottom:6px}
+  .field{gap:5px;margin-bottom:11px}
+  input[type=text],input[type=number],.inp{padding:11px 13px}
+  .gold.big{padding:13px;font-size:16px}
+  .divider{margin:13px 0}
+}
 @media(max-height:670px) and (max-width:979px){
   :root{--card-w:clamp(30px,8.6vw,38px);--mini-w:clamp(19px,5.4vw,24px);--board-w:clamp(24px,6.6vw,32px);--dock-h:234px}
   /* a short phone has no room between the top seat and mine: tighten the middle column so
@@ -688,9 +754,9 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pot-label{font-size:8.5px;letter-spacing:1.8px}
   .pot-amt{font-size:16px}
   .phase{font-size:9px;min-height:10px;letter-spacing:2px}
-  .pod{width:66px}
-  .avatar,.pod-av{width:40px;height:40px}
-  .av-emo{font-size:20px}
+  .pod{width:58px}
+  .avatar,.pod-av{width:36px;height:36px}
+  .av-emo{font-size:18px}
   .pod-best,.me-panel{display:none}              /* reclaim height; sit-out lives in the menu */
   .pod:not(.me) .pod-av .pod-cards{top:-13px}
   .pod-plate{padding:1px 7px;min-width:54px}
@@ -719,6 +785,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 [data-motion="low"] .seats-layer.sweeping .pod-cards .card,
 [data-motion="low"] .seats-layer.sweeping .betchip,
 [data-motion="low"] .act-badge.pop,[data-motion="low"] .my-hand.sweeping .card,
+[data-motion="low"] .result-banner,
 [data-motion="low"] .deck.shuffling,[data-motion="low"] .deck.shuffling .dk{animation:none}
 [data-motion="low"] .betchip.fly{display:none}
 [data-motion="low"] .pod.winner .avatar,[data-motion="low"] .pod.active .avatar{
@@ -2566,6 +2633,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
           '<div id="bets-layer" class="bets-layer"></div>' +
           '<div id="seats-layer" class="seats-layer"></div>' +
           '<div id="lobby-box" class="lobby-box" hidden></div>' +
+          '<div id="result-banner" class="result-banner" hidden></div>' +
         '</div>' +
       '</main>' +
       '<div id="my-hand" class="my-hand"></div>' +
@@ -2760,6 +2828,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     }
     renderSeats();
     renderCenter();
+    renderResultBanner();
     applySweepClasses();
     applyCardOrigins();
     renderMe();
@@ -2872,6 +2941,46 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   function dealWindowMs() {
     var n = (cur.game && cur.game.players ? cur.game.players.length : 2) || 2;
     return Math.round((2 * n * DEAL_STEP + 0.7) * 1000);
+  }
+
+  /* ---------- who won ------------------------------------------------------
+     A gold glow on a seat and a small "+60" is not enough to follow a hand — people were
+     genuinely missing who took the pot. At the end of every hand a banner says it in words
+     over the middle of the table: the name, the amount, and the hand that won. It's built
+     once per hand (rebuilding it would restart its animation on every table update) and
+     clears itself when the dealer starts collecting the cards. */
+  var rbHand = -1;
+  function resultBannerHTML(res) {
+    var byId = {}, order = [];
+    (res.pots || []).forEach(function (pot) {
+      (pot.winners || []).forEach(function (w) {
+        if (w == null || w.id == null) return;
+        if (!byId[w.id]) { byId[w.id] = { name: w.name, amount: 0, hand: w.hand || "" }; order.push(w.id); }
+        byId[w.id].amount += w.amount || 0;
+        if (w.hand) byId[w.id].hand = w.hand;
+      });
+    });
+    if (!order.length) return "";
+    var split = order.length > 1;
+    var html = '<div class="rb-title">' + (split ? "Split pot" : "Winner") + "</div>";
+    order.forEach(function (id) {
+      var w = byId[id];
+      html += '<div class="rb-row"><span class="rb-name">' + esc(w.name) + '</span>' +
+              '<span class="rb-amt">+' + fmt(w.amount) + "</span></div>";
+    });
+    var sub = res.byFold ? "everyone else folded" : (byId[order[0]].hand || "");
+    if (sub) html += '<div class="rb-hand">' + esc(sub) + "</div>";
+    return html;
+  }
+  function renderResultBanner() {
+    var host = $("result-banner"); if (!host) return;
+    var g = cur.game;
+    var show = !!(g && g.handOver && g.result && g.handNo !== sweptHand);
+    if (!show) { if (rbHand !== -1) { host.hidden = true; host.innerHTML = ""; rbHand = -1; } return; }
+    if (rbHand === g.handNo) return;                  // already up — leave its animation alone
+    var html = resultBannerHTML(g.result);
+    if (!html) return;
+    rbHand = g.handNo; host.innerHTML = html; host.hidden = false;
   }
 
   function winnersMap(g) {
@@ -3049,6 +3158,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
       peek = instructorOn && !mine && !showdownReveal && !volunteered;
     }
     var handEndReveal = showdownReveal || volunteered;
+    if (peek && !tabled) pod.classList.add("peeking");   // promo: this hand shows over the picture
     var justFolded = mucked && !!foldAt[p.id] && (Date.now() - foldAt[p.id] < 700);
     var justShown = volunteered && !!showAt[p.id] && (Date.now() - showAt[p.id] < 700);
     function buildCards(sizeCls) {
@@ -3085,7 +3195,6 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     var avwrap = el("div", "pod-av");
     if (!mine) avwrap.appendChild(buildCards("mini"));   // absolute, tucked behind the avatar
     avwrap.appendChild(avatarEl(p.id));
-    if (isBotId(p.id) && canManageBots()) avwrap.appendChild(kickButton(p));
     if (g.button != null && g.players[g.button] && g.players[g.button].id === p.id) avwrap.appendChild(el("span", "dbtn", "D"));
     if (isTurn) { var ring = el("div", "ring"); ring.appendChild(el("div", "ring-fill")); avwrap.appendChild(ring); }
     pod.appendChild(avwrap);
@@ -3102,6 +3211,9 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 
     // What this player just did, shown on their seat until the street clears — the way a
     // real table tells you, instead of a line of text scrolling past in a log.
+    // on the plate, not the avatar: with the promo on, the peeked cards cover the avatar
+    if (isBotId(p.id) && canManageBots()) plate.appendChild(kickButton(p));
+    if (handEnd && wonAmt > 0) plate.appendChild(el("div", "act-badge a-win", "WINNER"));
     if (p.act && p.act.t && !handEnd && ACT_CLASS[p.act.t]) {
       var sig = p.act.t + ":" + (p.act.a || 0) + ":" + (g.phase || "");
       if (actSig[p.id] !== sig) { actSig[p.id] = sig; actAt[p.id] = Date.now(); }
@@ -3184,7 +3296,8 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     }
     if (!g.handOver) { pot.hidden = false; pot.classList.remove("won"); pot.innerHTML = '<span class="pot-label">POT</span><span class="pot-amt">' + fmt(E.potTotal(g)) + '</span>'; }
     else if (g.result) {
-      pot.hidden = false; pot.innerHTML = '<span class="pot-label">RESULT</span><span class="pot-amt win">' + esc(resultText(g.result)) + '</span>';
+      // the banner says who won; the pill just shows what was in the middle
+      pot.hidden = false; pot.innerHTML = '<span class="pot-label">POT</span><span class="pot-amt">' + fmt(resultPotTotal(g.result)) + '</span>';
       if (flipReveal) { pot.classList.remove("won"); void pot.offsetWidth; pot.classList.add("won"); }   // restart the pulse once
     }
     else { pot.hidden = true; pot.classList.remove("won"); }
@@ -3249,6 +3362,11 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     for (var i = seats.length - 1; i >= 0; i--) { if (seats[i] && seats[i].isBot) { seats[i] = null; cur.ref.child("seats").set(seats); return; } }
   }
 
+  function resultPotTotal(res) {
+    var n = 0;
+    (res.pots || []).forEach(function (pot) { n += pot.amount || 0; });
+    return n;
+  }
   function resultText(res) {
     if (!res.pots || !res.pots.length) return "";
     var parts = [];
