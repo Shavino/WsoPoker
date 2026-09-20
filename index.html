@@ -234,6 +234,15 @@ input.shake{animation:shake .4s}
 .dbtn{position:absolute;right:-6px;bottom:-4px;z-index:8;width:21px;height:21px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#fff,#e8dcc0);color:#231c0c;font-size:11px;font-weight:800;
   display:flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(0,0,0,.6);border:1px solid #bda875}
+/* the table's creator can send a bot home — theirs is the only screen this appears on */
+.kick-btn{position:absolute;right:-7px;top:-7px;z-index:9;width:20px;height:20px;border-radius:50%;
+  background:linear-gradient(180deg,#5c313a,#3a1d23);color:#ffc0c0;border:1px solid rgba(255,130,130,.45);
+  font-size:10.5px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;
+  padding:0;box-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:auto;opacity:.82;
+  transition:background .15s,transform .1s,opacity .15s}
+.kick-btn:hover{background:linear-gradient(180deg,#9b3b45,#61242c);color:#fff;transform:scale(1.12);opacity:1}
+.pod.lobby .pod-av{width:auto;height:auto}
+
 .ring{position:absolute;inset:-5px;z-index:3;border-radius:50%;padding:3px;pointer-events:none;
   -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));
           mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
@@ -654,6 +663,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .betchip{font-size:10.5px;padding:2px 7px 2px 4px}
   .chip-dot{width:10px;height:10px}
   .dbtn{width:18px;height:18px;font-size:10px}
+  .kick-btn{width:22px;height:22px;font-size:11px;right:-8px;top:-8px;opacity:1}
   .bot-tag{font-size:6.5px;padding:1px 3px}
 }
 @media(max-height:780px) and (max-width:979px){
@@ -2161,6 +2171,50 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
      HOST LOOP
      ====================================================================== */
   function isBotId(id) { return typeof id === "string" && id.indexOf("bot_") === 0; }
+  /* ---------- who may add and kick bots ------------------------------------
+     The person who made the table (meta.hostId, written once when it's created and never
+     reassigned). That's deliberately NOT the same as amHost, which is just whichever
+     browser happens to be running the engine right now and can move between players. If
+     the creator has left the table, whoever is running it can tidy up instead, so a table
+     full of bots is never stuck. */
+  function isOwner() { return !!(cur.meta && cur.meta.hostId && cur.meta.hostId === clientId); }
+  function ownerHere() {
+    var id = cur.meta && cur.meta.hostId;
+    if (!id) return false;
+    if (id === clientId) return true;
+    var pr = cur.presence && cur.presence[id];
+    return !!(pr && (serverNow() - (pr.ts || 0)) < DISCONNECT_GRACE_MS);
+  }
+  function canManageBots() { return isOwner() || (amHost && !ownerHere()); }
+  function freeSeatIndex() {
+    var seats = normSeats(cur.seats), max = (cur.meta && cur.meta.maxSeats) || MAX_SEATS;
+    for (var i = 0; i < max; i++) if (!seats[i]) return i;
+    return -1;
+  }
+  // Kicking mid-hand is safe: the seat goes now, the hand it's already in plays out, and
+  // settleStacks only writes chips back to seats that still exist.
+  function kickBot(id) {
+    if (!canManageBots() || !cur.ref) return;
+    var seats = normSeats(cur.seats);
+    for (var i = 0; i < seats.length; i++) {
+      if (seats[i] && seats[i].id === id && seats[i].isBot) {
+        var name = seats[i].name;
+        seats[i] = null;
+        cur.ref.child("seats").set(seats);
+        toast(name + " left the table");
+        return;
+      }
+    }
+  }
+  function kickButton(p) {
+    var b = el("button", "kick-btn", "\u2715");
+    b.type = "button";
+    b.title = "Remove " + p.name + " from the table";
+    b.setAttribute("aria-label", "Remove " + p.name);
+    b.setAttribute("data-kick", p.id);
+    b.onclick = function (e) { e.stopPropagation(); kickBot(p.id); };
+    return b;
+  }
   function connected(seat) {
     if (!seat) return false;
     if (seat.isBot) return true;                 // the Dealer bot is always "present"
@@ -2949,7 +3003,10 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   function lobbyPod(p, xy) {
     var pod = el("div", "pod lobby" + (p.id === clientId ? " me" : ""));
     pod.style.left = xy.x + "%"; pod.style.top = xy.y + "%";
-    pod.appendChild(avatarEl(p.id));
+    var av = el("div", "pod-av");
+    av.appendChild(avatarEl(p.id));
+    if (isBotId(p.id) && canManageBots()) av.appendChild(kickButton(p));
+    pod.appendChild(av);
     pod.appendChild(el("div", "pod-name", p.name + (p.id === clientId ? " (you)" : "")));
     var st = el("div", "pod-stack", fmt(p.stack));
     if (p.away) { st.appendChild(document.createTextNode(" ")); st.appendChild(el("span", "tag", "away")); }
@@ -3028,6 +3085,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     var avwrap = el("div", "pod-av");
     if (!mine) avwrap.appendChild(buildCards("mini"));   // absolute, tucked behind the avatar
     avwrap.appendChild(avatarEl(p.id));
+    if (isBotId(p.id) && canManageBots()) avwrap.appendChild(kickButton(p));
     if (g.button != null && g.players[g.button] && g.players[g.button].id === p.id) avwrap.appendChild(el("span", "dbtn", "D"));
     if (isTurn) { var ring = el("div", "ring"); ring.appendChild(el("div", "ring-fill")); avwrap.appendChild(ring); }
     pod.appendChild(avwrap);
@@ -3139,7 +3197,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
     var bots = (cur.seats || []).filter(function (s) { return s && s.isBot; }).length;
     var tSec = (cur.meta.turnMs || TURN_MS) / 1000;
     // Don't rebuild while nothing meaningful changed — keeps the settings inputs typeable.
-    var sig = [host, cur.meta.started, cur.meta.name, cur.meta.turnMs, cur.meta.bb, cur.meta.startingStack, seated, bots].join("|");
+    var sig = [host, canManageBots(), cur.meta.started, cur.meta.name, cur.meta.turnMs, cur.meta.bb, cur.meta.startingStack, seated, bots].join("|");
     if (sig === lastLobbySig && box.childNodes.length) return;
     lastLobbySig = sig;
     var settings = editable
@@ -3160,15 +3218,16 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
       '<div class="lobby-title">' + esc(cur.meta.name || "Table") + '</div>' +
       settings +
       '<div class="lobby-actions">' +
-        (host
-          ? '<div class="botrow"><button id="lb-addbot" class="ghost sm">+ Add bot</button>' + (bots > 0 ? '<button id="lb-rmbot" class="ghost sm">− Remove bot</button>' : '') + '</div><button id="lb-start" class="gold big">▶ Start game</button>'
-          : '<div class="waiting">Waiting for the host to start…</div>') +
+        (canManageBots() ? '<div class="botrow"><button id="lb-addbot" class="ghost sm">+ Add bot</button>' + (bots > 0 ? '<button id="lb-rmbot" class="ghost sm">− Remove bot</button>' : '') + '</div>' : '') +
+        (host ? '<button id="lb-start" class="gold big">▶ Start game</button>'
+              : '<div class="waiting">Waiting for the host to start…</div>') +
       '</div>' +
       '<div class="lobby-share">Share code <b>' + esc(cur.code) + '</b> — tap it up top to copy the invite link.</div>';
+    var a = $("lb-addbot"), rm = $("lb-rmbot");
+    if (a) a.onclick = hostAddBot;
+    if (rm) rm.onclick = hostRemoveBot;
     if (host) {
-      var a = $("lb-addbot"), rm = $("lb-rmbot"), s = $("lb-start");
-      if (a) a.onclick = hostAddBot;
-      if (rm) rm.onclick = hostRemoveBot;
+      var s = $("lb-start");
       if (s) s.onclick = hostStartGame;
       if (editable) {
         var tsec = $("lb-timer-sec"), bb = $("lb-bb"), ch = $("lb-chips"), pres = $("lb-presets");
@@ -3248,6 +3307,11 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
       }
     }
     panel.classList.toggle("has-action", actionable);
+    if (canManageBots() && freeSeatIndex() >= 0) {
+      var addBot = el("button", "ghost sm", "+ Bot");
+      addBot.title = "Add a bot to the table";
+      addBot.onclick = hostAddBot; util.appendChild(addBot);
+    }
     var sit = el("button", "ghost sm", seat.sittingOut ? "Sit back in" : "Sit out next hand");
     sit.onclick = toggleSitOut; util.appendChild(sit);
     // when it's NOT my turn, show a subtle status so the panel isn't empty

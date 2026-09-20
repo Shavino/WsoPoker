@@ -55,6 +55,7 @@ node shoot-anim.js       # cards dealt off the deck, swept back into it, riffled
 node shoot-promo.js      # promo code: hidden, wrong codes refused, right one reveals the table
 node shoot-table-feel.js # seat action badges, bets sliding to the pot, the log, motion setting
 node shoot-phone.js      # phone layout: hand clear of the board, dock never moves, desktop untouched
+node shoot-kick.js       # only the table's creator can add or remove a bot
 ```
 
 > The mock database in `mockfb.js` deliberately mimics a real Firebase quirk: it **drops
@@ -100,6 +101,14 @@ POKER_CODE="YOUR-NEW-CODE" node build.js     # prints a new salt + key to paste 
   (`poker_bg` / `poker_table` / `poker_cards`) and changes nothing for anyone else at the table.
   A style is only a set of CSS variables, switched by `data-bg` / `data-table` / `data-cards` on
   `<html>` — adding a seventh is a few lines at the bottom of `styles.css` plus one entry in `THEMES`.
+- **Bots belong to whoever made the table.** `meta.hostId` is written once when the table is
+  created and never reassigned — which is deliberately *not* `amHost`, the browser currently
+  running the engine, since that moves between players. Only the creator sees the ✕ on a bot's
+  seat and the "+ Bot" button, in the lobby and mid-hand alike. Kicking during a hand is safe:
+  the seat goes immediately, the hand that bot was already dealt into plays out, and
+  `settleStacks()` only writes chips back to seats that still exist. If the creator has left
+  the table, whoever is running it can manage bots instead, so a table can't get stuck full
+  of them.
 - **On a phone the layout is a different shape.** Below 980px two things change, and both
   are load-bearing. My own two cards leave the felt and get their own row between the table
   and the buttons (`phoneLayout()` in `renderSeats` puts them in `#my-hand` instead of my

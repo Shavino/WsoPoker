@@ -183,6 +183,15 @@ input.shake{animation:shake .4s}
 .dbtn{position:absolute;right:-6px;bottom:-4px;z-index:8;width:21px;height:21px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#fff,#e8dcc0);color:#231c0c;font-size:11px;font-weight:800;
   display:flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(0,0,0,.6);border:1px solid #bda875}
+/* the table's creator can send a bot home — theirs is the only screen this appears on */
+.kick-btn{position:absolute;right:-7px;top:-7px;z-index:9;width:20px;height:20px;border-radius:50%;
+  background:linear-gradient(180deg,#5c313a,#3a1d23);color:#ffc0c0;border:1px solid rgba(255,130,130,.45);
+  font-size:10.5px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;
+  padding:0;box-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:auto;opacity:.82;
+  transition:background .15s,transform .1s,opacity .15s}
+.kick-btn:hover{background:linear-gradient(180deg,#9b3b45,#61242c);color:#fff;transform:scale(1.12);opacity:1}
+.pod.lobby .pod-av{width:auto;height:auto}
+
 .ring{position:absolute;inset:-5px;z-index:3;border-radius:50%;padding:3px;pointer-events:none;
   -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));
           mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
@@ -603,6 +612,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .betchip{font-size:10.5px;padding:2px 7px 2px 4px}
   .chip-dot{width:10px;height:10px}
   .dbtn{width:18px;height:18px;font-size:10px}
+  .kick-btn{width:22px;height:22px;font-size:11px;right:-8px;top:-8px;opacity:1}
   .bot-tag{font-size:6.5px;padding:1px 3px}
 }
 @media(max-height:780px) and (max-width:979px){
