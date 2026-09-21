@@ -46,11 +46,42 @@
   Ref.prototype.on = function (ev, cb) { var l = { parts: this.parts, cb: cb, limit: this.limit }; listeners.push(l); var self = this; setTimeout(function () { cb(snap(limited(getAt(self.parts), self.limit))); }, 0); return cb; };
   Ref.prototype.off = function () { var key = this.parts.join("/"); listeners = listeners.filter(function (l) { return l.parts.join("/") !== key; }); };
   Ref.prototype.get = function () { return Promise.resolve(snap(getAt(this.parts))); };
-  Ref.prototype.set = function (v) { setAt(this.parts, fbSerialize(v) === undefined ? null : fbSerialize(v)); emit(); return Promise.resolve(); };
-  Ref.prototype.update = function (v) { var cur = getAt(this.parts); if (typeof cur !== "object" || cur === null) cur = {}; Object.keys(v).forEach(function (k) { var s = fbSerialize(v[k]); if (s === undefined) delete cur[k]; else cur[k] = s; }); setAt(this.parts, cur); emit(); return Promise.resolve(); };
-  Ref.prototype.remove = function () { setAt(this.parts, null); emit(); return Promise.resolve(); };
+  // Transactions, the way the real SDK runs them: the new value shows locally at once, the
+  // server confirms it a moment later — and a set()/update()/remove() made from this same
+  // browser on the transaction's path, or anywhere above or below it, CANCELS it: its write
+  // is rolled back and its callback gets the error "set". (The SDK's own words: "Modifying
+  // data with set() will cancel any pending transactions at that location.") The mock used to
+  // commit transactions instantly, which hid a bug where the all-in code's flag, written on
+  // your seat the moment it appeared, cancelled the very transaction that was seating you.
+  var pending = [];
+  function overlaps(a, b) { var n = Math.min(a.length, b.length); for (var i = 0; i < n; i++) if (a[i] !== b[i]) return false; return true; }
+  function cancelPending(parts) {
+    pending.slice().forEach(function (t) {
+      if (t.done || !overlaps(t.parts, parts)) return;
+      t.done = true; pending.splice(pending.indexOf(t), 1);
+      setAt(t.parts, t.before);
+      if (t.cb) setTimeout(function () { t.cb(new Error("set"), false, null); }, 0);
+    });
+  }
+  function copy(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
+  Ref.prototype.set = function (v) { cancelPending(this.parts); setAt(this.parts, fbSerialize(v) === undefined ? null : fbSerialize(v)); emit(); return Promise.resolve(); };
+  Ref.prototype.update = function (v) { cancelPending(this.parts); var cur = getAt(this.parts); if (typeof cur !== "object" || cur === null) cur = {}; Object.keys(v).forEach(function (k) { var s = fbSerialize(v[k]); if (s === undefined) delete cur[k]; else cur[k] = s; }); setAt(this.parts, cur); emit(); return Promise.resolve(); };
+  Ref.prototype.remove = function () { cancelPending(this.parts); setAt(this.parts, null); emit(); return Promise.resolve(); };
   Ref.prototype.push = function (v) { var k = "k" + Date.now() + Math.floor(Math.random() * 1e6); var s = fbSerialize(v); setAt(this.parts.concat(k), s === undefined ? null : s); emit(); return Promise.resolve(); };
-  Ref.prototype.transaction = function (fn, cb) { var v = getAt(this.parts); var r = fn(v); if (r !== undefined) { var s = fbSerialize(r); setAt(this.parts, s === undefined ? null : s); emit(); } if (cb) setTimeout(function () { cb(null, r !== undefined, snap(getAt([]))); }, 0); return Promise.resolve(); };
+  Ref.prototype.transaction = function (fn, cb) {
+    var self = this, before = copy(getAt(this.parts)), r = fn(copy(before));
+    if (r === undefined) { if (cb) setTimeout(function () { cb(null, false, snap(getAt(self.parts))); }, 0); return Promise.resolve(); }
+    var s = fbSerialize(r);
+    var t = { parts: this.parts, before: before, cb: cb, done: false };
+    pending.push(t);
+    setAt(this.parts, s === undefined ? null : s); emit();           // shows locally straight away
+    setTimeout(function () {                                          // ...and the server confirms it
+      if (t.done) return;
+      t.done = true; pending.splice(pending.indexOf(t), 1);
+      if (cb) cb(null, true, snap(getAt(self.parts)));
+    }, 90);
+    return Promise.resolve();
+  };
   Ref.prototype.onDisconnect = function () { return { remove: function () { return Promise.resolve(); }, set: function () { return Promise.resolve(); } }; };
 
   window.firebase = {

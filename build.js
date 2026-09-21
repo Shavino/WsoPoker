@@ -26,6 +26,19 @@ if (process.env.POKER_CODE) {
   console.log('  let CODE_KEY  = "' + CODE_KEY + '";');
 }
 
+// The second code works the same way and is stored the same way — never the code itself.
+// To set a new one:  POKER_CODE2="NEW-CODE" node build.js
+let CODE2_SALT = "sv3LGNWlj83plpCYRVnjRQ==";
+let CODE2_KEY  = "CF7Vvet1fuf6OOD+IoRPrwm4UK8DnTdSiBYzf9Lyog8=";
+if (process.env.POKER_CODE2) {
+  const salt = crypto.randomBytes(16);
+  CODE2_SALT = salt.toString("base64");
+  CODE2_KEY = crypto.pbkdf2Sync(process.env.POKER_CODE2.trim().toUpperCase(), salt, CODE_ITER, 32, "sha256").toString("base64");
+  console.log("New second code baked in. Paste these into build.js to keep it:");
+  console.log('  let CODE2_SALT = "' + CODE2_SALT + '";');
+  console.log('  let CODE2_KEY  = "' + CODE2_KEY + '";');
+}
+
 let html = fs.readFileSync(path.join(dir, "template.html"), "utf8");
 const styles = fs.readFileSync(path.join(dir, "styles.css"), "utf8");
 const engine = fs.readFileSync(path.join(dir, "engine.js"), "utf8");
@@ -35,12 +48,14 @@ html = html.split("FIREBASE_VER").join(FIREBASE_VER);
 html = html.split("__CODE_SALT__").join(CODE_SALT);
 html = html.split("__CODE_KEY__").join(CODE_KEY);
 html = html.split("__CODE_ITER__").join(String(CODE_ITER));
+html = html.split("__CODE2_SALT__").join(CODE2_SALT);
+html = html.split("__CODE2_KEY__").join(CODE2_KEY);
 html = html.replace("/*STYLES*/", () => styles);
 html = html.replace("/*ENGINE*/", () => engine);
 html = html.replace("/*APP*/", () => app);
 
 // sanity: no leftover placeholders, no stray closing script tags in JS
-["/*STYLES*/", "/*ENGINE*/", "/*APP*/", "FIREBASE_VER", "__CODE_SALT__", "__CODE_KEY__", "__CODE_ITER__"].forEach(p => {
+["/*STYLES*/", "/*ENGINE*/", "/*APP*/", "FIREBASE_VER", "__CODE_SALT__", "__CODE_KEY__", "__CODE_ITER__", "__CODE2_SALT__", "__CODE2_KEY__"].forEach(p => {
   if (html.indexOf(p) !== -1) { console.error("Leftover placeholder: " + p); process.exit(1); }
 });
 if (/<\/script>/i.test(engine) || /<\/script>/i.test(app) || /<\/style>/i.test(styles)) {

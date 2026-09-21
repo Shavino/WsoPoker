@@ -136,7 +136,7 @@ const tap4 = async (page, answer) => {
     !wrong.on && /invalid/i.test(wrong.toast) && wrong.oppVisible === 0 &&
     right.on && right.oppVisible === 4 && right.peeked === 4 && right.inFront && onPhone.ok && onPhone.seen === 4 &&
     leaks.length === 0 && kdfInPage && errs.length === 0;
-  console.log(ok ? "✅ PROMO CODE — hidden, slow to test, wrong codes refused, right code reveals the table"
+  console.log(ok ? "✅ TABLE CODE — hidden, slow to test, wrong codes refused, right code reveals the table"
                  : "❌ promo code check failed");
   process.exit(ok ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(1); });

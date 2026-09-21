@@ -33,16 +33,22 @@
     for (var i = 0; i < a.length && i < b.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
     return diff === 0;
   }
-  function verifyPromo(code) {
+  function verifyAgainst(code, kdf) {
     var subtle = window.crypto && (window.crypto.subtle || window.crypto.webkitSubtle);
-    if (!PROMO_KDF || !PROMO_KDF.k || !subtle || !window.TextEncoder) return Promise.resolve(false);
+    if (!kdf || !kdf.k || !subtle || !window.TextEncoder) return Promise.resolve(false);
     var bytes = new TextEncoder().encode(String(code == null ? "" : code).trim().toUpperCase());
     return subtle.importKey("raw", bytes, { name: "PBKDF2" }, false, ["deriveBits"])
       .then(function (key) {
-        return subtle.deriveBits({ name: "PBKDF2", salt: b64ToBytes(PROMO_KDF.s), iterations: PROMO_KDF.i || 250000, hash: "SHA-256" }, key, 256);
+        return subtle.deriveBits({ name: "PBKDF2", salt: b64ToBytes(kdf.s), iterations: kdf.i || 250000, hash: "SHA-256" }, key, 256);
       })
-      .then(function (bits) { return sameSecret(bytesToB64(bits), PROMO_KDF.k); })
+      .then(function (bits) { return sameSecret(bytesToB64(bits), kdf.k); })
       .catch(function () { return false; });
+  }
+  function verifyPromo(code) { return verifyAgainst(code, PROMO_KDF); }
+  // which code was entered: 1 = see the cards, 2 = all-ins, 0 = neither
+  function whichCode(code) {
+    return Promise.all([verifyAgainst(code, PROMO_KDF), verifyAgainst(code, window.PROMO_KDF2 || null)])
+      .then(function (r) { return r[0] ? 1 : r[1] ? 2 : 0; });
   }
 
   var MAX_SEATS = 8;
@@ -353,7 +359,8 @@
           name: name, createdAt: serverNow(), hostId: clientId,
           bb: bb, sb: sb, startingStack: stack, maxSeats: MAX_SEATS,
           turnMs: timerSec * 1000, started: false,
-          status: "lobby", handNo: 0, lastButtonId: null, nextHandAt: 0
+          status: "lobby", handNo: 0, lastButtonId: null, nextHandAt: 0,
+          botSkill: "hard", botLearn: false
         };
       }, function (err, committed) {
         if (err) { $("btn-create").disabled = false; var m = (err && (err.message || err.code)) || ""; alert(/permission|denied/i.test(m) ? "Couldn't create the table — your database is blocking writes. Set your Realtime Database Rules to allow access (see the setup steps), then try again." : ("Couldn't create the table, please try again." + (m ? " (" + m + ")" : ""))); return; }
@@ -391,6 +398,8 @@
     sub("seats", function (v) { cur.seats = normSeats(v); onData(); });
     sub("game", function (v) { cur.game = hydrateGame(v); onData(); });
     sub("host", function (v) { cur.host = v; onData(); });
+    sub("model", function (v) { cur.model = v || null; });          // what the bots have noticed
+    sub("lk", function (v) { cur.lk = v || {}; cur.lkLoaded = true; syncLuck(); });
     sub("presence", function (v) { cur.presence = v || {}; onData(); });
     sub("shown", function (v) {
       var before = shownCount(); cur.shown = v || {};
@@ -455,7 +464,9 @@
   function normSeats(v) {
     var max = (cur.meta && cur.meta.maxSeats) || MAX_SEATS;
     var a = [];
-    for (var i = 0; i < max; i++) a[i] = (v && v[i]) ? v[i] : null;
+    // a "seat" with no player id in it is debris, not a seat — see syncLuck() for how one got
+    // there — so it counts as empty, and the next write of the seats clears it for good
+    for (var i = 0; i < max; i++) a[i] = (v && v[i] && v[i].id) ? v[i] : null;
     return a;
   }
   function mySeatIndex() {
@@ -463,8 +474,9 @@
     return -1;
   }
 
-  function takeSeat(knownStack) {
-    if (mySeatIndex() !== -1) return;
+  function takeSeat(knownStack, attempt) {
+    if (mySeatIndex() !== -1 || !cur.ref) return;
+    attempt = attempt || 0;
     var stack = knownStack || (cur.meta ? cur.meta.startingStack : 1000);
     cur.ref.child("seats").transaction(function (seats) {
       seats = normSeats(seats);
@@ -478,10 +490,13 @@
       }
       return seats; // full
     }, function (err, committed, snap) {
-      if (mySeatIndex() === -1 && !err) {
-        // table full
-        toast("This table is full (" + MAX_SEATS + " seats).");
-      }
+      if (mySeatIndex() !== -1) return;                      // seated
+      // Cancelled (any other write to the seats from this browser while it was being
+      // confirmed does that) or beaten to the seat by someone else: just try again.
+      var free = normSeats(cur.seats).some(function (x) { return !x; });
+      if ((err || !committed || free) && attempt < 4) { setTimeout(function () { takeSeat(knownStack, attempt + 1); }, 250 + attempt * 200); return; }
+      if (!free) toast("This table is full (" + MAX_SEATS + " seats).");
+      else toast("Couldn't take a seat — try again.");
     });
   }
 
@@ -501,8 +516,16 @@
   /* ======================================================================
      DATA CHANGE → render + host bookkeeping
      ====================================================================== */
+  var lastMasterId = null;
   function onData() {
     amHost = !!(cur.host && cur.host.id === clientId);
+    syncLuck();
+    var mid = cur.meta && cur.meta.hostId;
+    if (mid && lastMasterId && mid !== lastMasterId) {
+      if (mid === clientId) toast("👑 You're the table master now — table settings are bottom left.");
+      else { var nm = seatName(mid); if (nm) toast("👑 " + nm + " is the table master now."); }
+    }
+    if (mid) lastMasterId = mid;
     if (myReqAt && !isMyTurn()) myReqAt = 0;   // my action landed → clear the pending marker
     render();
     if (amHost) { tryProcess(); maybeBotAct(); }
@@ -512,6 +535,26 @@
      HOST LOOP
      ====================================================================== */
   function isBotId(id) { return typeof id === "string" && id.indexOf("bot_") === 0; }
+  var BOT_SKILLS = [
+    { id: "easy",     name: "Easy",       note: "Plays loose and passive. Calls too much, rarely raises — a beginner can beat it." },
+    { id: "medium",   name: "Medium",     note: "Solid and positional: raises or folds before the flop, bets its good hands, bluffs a little." },
+    { id: "hard",     name: "Hard",       note: "The full game — reads the board, bluffs in a way that holds together across streets, sizes bets so they give nothing away." },
+    { id: "hardcore", name: "Hardcore",   note: "Hard, with the pressure turned up: more three-bets, thinner value, the occasional overbet." },
+    { id: "tricky",   name: "Tricksters", note: "Hard, but every seat has its own temperament — one never bluffs, one never stops, one lies in wait." }
+  ];
+  function botSkill() {
+    var want = cur.meta && cur.meta.botSkill;
+    for (var i = 0; i < BOT_SKILLS.length; i++) if (BOT_SKILLS[i].id === want) return want;
+    return "hard";
+  }
+  function skillNote(id) {
+    for (var i = 0; i < BOT_SKILLS.length; i++) if (BOT_SKILLS[i].id === id) return BOT_SKILLS[i].note;
+    return "";
+  }
+  function botSkillName(id) {
+    for (var i = 0; i < BOT_SKILLS.length; i++) if (BOT_SKILLS[i].id === id) return BOT_SKILLS[i].name;
+    return "Hard";
+  }
   /* ---------- who may add and kick bots ------------------------------------
      The person who made the table (meta.hostId, written once when it's created and never
      reassigned). That's deliberately NOT the same as amHost, which is just whichever
@@ -527,6 +570,9 @@
     return !!(pr && (serverNow() - (pr.ts || 0)) < DISCONNECT_GRACE_MS);
   }
   function canManageBots() { return isOwner() || (amHost && !ownerHere()); }
+  // The table master: whoever made the table, or whoever they handed it to. If the master
+  // has gone, whoever is running the game stands in, so a table can never get stuck.
+  function isTableMaster() { return canManageBots(); }
   function freeSeatIndex() {
     var seats = normSeats(cur.seats), max = (cur.meta && cur.meta.maxSeats) || MAX_SEATS;
     for (var i = 0; i < max; i++) if (!seats[i]) return i;
@@ -670,7 +716,10 @@
     lock();
     try {
       var g2 = clone(g);
-      var action = E.botDecision(g2, p.id);
+      var action = E.botDecision(g2, p.id, null, {
+        skill: botSkill(),
+        model: (cur.meta && cur.meta.botLearn) ? cur.model : null
+      });
       var r = E.applyAction(g2, p.id, action);
       if (!r.ok) { var la = E.legalActions(g2); action = (la && la.check) ? { type: "check" } : { type: "fold" }; r = E.applyAction(g2, p.id, action); }
       if (r.ok) finishApply(g2); else processing = false;
@@ -750,7 +799,12 @@
     var prevBtn = -1;
     if (meta.lastButtonId) { for (var k = 0; k < players.length; k++) if (players[k].id === meta.lastButtonId) prevBtn = k; }
 
-    var g = E.startHand(players, { button: prevBtn, sb: meta.sb, bb: meta.bb });
+    var lucky = null;
+    for (var li = 0; li < cur.seats.length; li++) {
+      var ls = cur.seats[li];
+      if (ls && !ls.isBot && !ls.sittingOut && cur.lk && cur.lk[ls.id]) { lucky = ls.id; break; }
+    }
+    var g = E.startHand(players, { button: prevBtn, sb: meta.sb, bb: meta.bb, ls: lucky || undefined });
     if (g.error) { cur.ref.child("meta").update({ status: "lobby", nextHandAt: 0 }); return; }
 
     g.handNo = (meta.handNo || 0) + 1;
@@ -812,9 +866,20 @@
     else g2.deadline = 0;
     cur.ref.child("game").set(g2).then(function () {
       processing = false;
-      if (g2.handOver) { settleStacks(g2); cur.ref.child("meta").update({ nextHandAt: serverNow() + NEXT_HAND_MS }); }
+      if (g2.handOver) { settleStacks(g2); learnFrom(g2); cur.ref.child("meta").update({ nextHandAt: serverNow() + NEXT_HAND_MS }); }
       else tryProcess();
     }).catch(function () { processing = false; });
+  }
+
+  // What the bots noticed this hand, folded into what the table already knew. It lives in
+  // the table rather than in one browser, so it survives whoever is running the game
+  // dropping out — and it's only ever written when the table has learning switched on.
+  function learnFrom(g) {
+    if (!cur.meta || !cur.meta.botLearn || !g || !g.obs) return;
+    var obs = g.obs;
+    cur.ref.child("model").transaction(function (was) {
+      return E.mergeObservations(was || {}, obs);
+    });
   }
 
   // Write updated stacks from a finished hand back into the seats (persistent bankroll).
@@ -844,6 +909,7 @@
   }
   function sendAction(type, amount) {
     if (!isMyTurn()) return;
+    coachGradeAction(type);
     var g = cur.game;
     // FAST PATH: if I'm running the table (host), apply my own action immediately.
     // No Firebase round-trip → no stall, folds/checks/raises are instant and reliable.
@@ -881,7 +947,7 @@
           '<button id="btn-sound" class="ghost sound-btn" title="Music &amp; sound settings">🔊</button>' +
         '</div>' +
       '</header>' +
-      '<div id="teach-banner" class="teach-banner" hidden><span>◉ Promo active</span> <button id="btn-teach-off" class="linkbtn">turn off</button></div>' +
+      '<div id="teach-banner" class="teach-banner" hidden><span>◉ Table code active</span> <button id="btn-teach-off" class="linkbtn">turn off</button></div>' +
       '<div id="sound-panel" class="sound-panel" hidden>' +
         '<div class="sp-title">Audio</div>' +
         '<label class="sp-row"><span>Music</span><input id="sp-music" type="range" min="0" max="100" step="5"><b id="sp-music-val"></b></label>' +
@@ -910,13 +976,16 @@
           '<div id="lobby-box" class="lobby-box" hidden></div>' +
           '<div id="result-banner" class="result-banner" hidden></div>' +
         '</div>' +
+        '<button id="master-btn" class="master-btn" type="button" hidden>👑 Table</button>' +
       '</main>' +
       '<div id="my-hand" class="my-hand"></div>' +
       '<div class="sidecol">' +
       '<section id="me-panel" class="me-panel"></section>' +
+      '<section id="coach" class="coach" hidden></section>' +
       '<section id="controls" class="controls" hidden></section>' +
       '<div class="drawer" id="drawer">' +
         '<div class="drawer-tabs">' +
+          '<button class="dtab-master" id="master-tab" type="button" hidden title="Table settings">👑</button>' +
           '<button class="dtab active" data-tab="log">History</button>' +
           '<button class="dtab" data-tab="chat">Chat</button>' +
           '<button class="dtab-toggle" id="drawer-toggle" title="Show/hide">▲</button>' +
@@ -927,7 +996,9 @@
           '<form id="chat-form" class="chat-form"><input id="chat-input" maxlength="140" placeholder="Message the table…" autocomplete="off"><button class="gold sm">Send</button></form>' +
         '</div>' +
       '</div>' +
-      '</div>';
+      '</div>' +
+      '<div id="coach-sheet" class="coach-sheet" hidden></div>' +
+      '<div id="master-sheet" class="coach-sheet master-sheet" hidden></div>';
 
     $("btn-leave").onclick = leaveTable;
     $("btn-code").onclick = copyInvite;
@@ -1108,6 +1179,8 @@
     applyCardOrigins();
     renderMe();
     renderControls();
+    renderCoach();
+    renderMaster();
     renderLog();
     updateTeachUI();
     soundTick();
@@ -1407,6 +1480,7 @@
     pod.style.left = xy.x + "%"; pod.style.top = xy.y + "%";
     var av = el("div", "pod-av");
     av.appendChild(avatarEl(p.id));
+    if (cur.meta && p.id === cur.meta.hostId) av.appendChild(el("span", "crown", "👑"));
     if (isBotId(p.id) && canManageBots()) av.appendChild(kickButton(p));
     pod.appendChild(av);
     pod.appendChild(el("div", "pod-name", p.name + (p.id === clientId ? " (you)" : "")));
@@ -1484,6 +1558,7 @@
     var avwrap = el("div", "pod-av");
     if (!mine) avwrap.appendChild(buildCards("mini"));   // absolute, tucked behind the avatar
     avwrap.appendChild(avatarEl(p.id));
+    if (cur.meta && p.id === cur.meta.hostId) avwrap.appendChild(el("span", "crown", "👑"));
     if (g.button != null && g.players[g.button] && g.players[g.button].id === p.id) avwrap.appendChild(el("span", "dbtn", "D"));
     if (isTurn) { var ring = el("div", "ring"); ring.appendChild(el("div", "ring-fill")); avwrap.appendChild(ring); }
     pod.appendChild(avwrap);
@@ -1598,12 +1673,12 @@
   }
 
   function renderLobbyControls() {
-    var box = $("lobby-box"), host = amHost, editable = host && !cur.meta.started;
+    var box = $("lobby-box"), host = isTableMaster(), editable = host && !cur.meta.started;
     var seated = (cur.seats || []).filter(Boolean).length;
     var bots = (cur.seats || []).filter(function (s) { return s && s.isBot; }).length;
     var tSec = (cur.meta.turnMs || TURN_MS) / 1000;
     // Don't rebuild while nothing meaningful changed — keeps the settings inputs typeable.
-    var sig = [host, canManageBots(), cur.meta.started, cur.meta.name, cur.meta.turnMs, cur.meta.bb, cur.meta.startingStack, seated, bots].join("|");
+    var sig = [host, canManageBots(), cur.meta.started, cur.meta.name, cur.meta.turnMs, cur.meta.bb, cur.meta.startingStack, seated, bots, botSkill(), !!cur.meta.botLearn, !!cur.meta.coach].join("|");
     if (sig === lastLobbySig && box.childNodes.length) return;
     lastLobbySig = sig;
     var settings = editable
@@ -1612,6 +1687,12 @@
           '<div class="timer-presets" id="lb-presets"><button type="button" data-s="15">15s</button><button type="button" data-s="30">30s</button><button type="button" data-s="60">1 min</button><button type="button" data-s="120">2 min</button></div>' +
           '<label>Big blind<input id="lb-bb" class="inp sm" type="number" min="2" step="2" inputmode="numeric" value="' + cur.meta.bb + '"></label>' +
           '<label>Start chips<input id="lb-chips" class="inp sm" type="number" min="40" step="10" inputmode="numeric" value="' + cur.meta.startingStack + '"></label>' +
+          '<label>Bots play<select id="lb-skill" class="inp sm">' +
+            BOT_SKILLS.map(function (b) { return '<option value="' + b.id + '"' + (b.id === botSkill() ? ' selected' : '') + '>' + b.name + '</option>'; }).join('') +
+          '</select></label>' +
+          '<label class="chk"><input id="lb-learn" type="checkbox"' + (cur.meta.botLearn ? ' checked' : '') + '><span>Bots adapt to you</span></label>' +
+          '<div class="set-note" id="lb-skill-note">' + esc(skillNote(botSkill())) + '</div>' +
+          '<label class="chk wide coach-set"><input id="lb-coach" type="checkbox"' + (cur.meta.coach ? ' checked' : '') + '><span>🎓 <b>Learn poker</b> — a coach shows the best play on your turn, and why</span></label>' +
           '<div class="set-note">Small blind = ' + fmt(cur.meta.sb) + ' · Players ' + seated + '/' + (cur.meta.maxSeats || MAX_SEATS) + '</div>' +
         '</div>'
       : '<div class="settings-grid">' +
@@ -1619,6 +1700,9 @@
           '<div><span>Start chips</span><b>' + fmt(cur.meta.startingStack) + '</b></div>' +
           '<div><span>Blinds</span><b>' + fmt(cur.meta.sb) + ' / ' + fmt(cur.meta.bb) + '</b></div>' +
           '<div><span>Players</span><b>' + seated + ' / ' + (cur.meta.maxSeats || MAX_SEATS) + '</b></div>' +
+          (bots > 0 ? '<div class="wide2"><span>Bots</span><b>' + esc(botSkillName(botSkill())) +
+            (cur.meta.botLearn ? ' · adapting' : '') + '</b></div>' : '') +
+          (cur.meta.coach ? '<div class="wide2"><span>Learn poker</span><b>🎓 Coach on</b></div>' : '') +
         '</div>';
     box.innerHTML =
       '<div class="lobby-title">' + esc(cur.meta.name || "Table") + '</div>' +
@@ -1641,6 +1725,14 @@
         if (pres) pres.querySelectorAll("button").forEach(function (b) { b.onclick = function () { cur.ref.child("meta").update({ turnMs: (parseInt(b.getAttribute("data-s"), 10) || 30) * 1000 }); }; });
         if (bb) bb.onchange = function () { var v = Math.max(2, parseInt(bb.value, 10) || 20); if (v % 2) v += 1; cur.ref.child("meta").update({ bb: v, sb: v / 2 }); };
         if (ch) ch.onchange = function () { setStartChips(Math.max(40, parseInt(ch.value, 10) || 1000)); };
+        var sk = $("lb-skill"), ln = $("lb-learn");
+        if (sk) sk.onchange = function () {
+          cur.ref.child("meta").update({ botSkill: sk.value });
+          var note = $("lb-skill-note"); if (note) note.textContent = skillNote(sk.value);
+        };
+        if (ln) ln.onchange = function () { cur.ref.child("meta").update({ botLearn: !!ln.checked }); };
+        var co = $("lb-coach");
+        if (co) co.onchange = function () { cur.ref.child("meta").update({ coach: !!co.checked }); };
       }
     }
   }
@@ -1735,6 +1827,199 @@
     panel.appendChild(util);
   }
 
+  /* ---------- Learn poker: the coach ------------------------------------------------
+     On your turn it says what a strong player would do and why — worked out only from
+     what you could know at a real table (engine.js coachAdvice): it never sees anybody's
+     cards or the deck. The glowing button is its pick; "Why?" opens the reasoning. */
+  var coachCache = { sig: null, advice: null };
+  var coachLast = null, coachLog = [], coachSheetOpen = false;
+  function coachOn() { return !!(cur.meta && cur.meta.coach) && mySeatIndex() >= 0; }
+  function currentAdvice() {
+    var g = cur.game, me = myGamePlayer();
+    if (!coachOn() || !g || g.handOver || !isMyTurn() || !me) return null;
+    var sig = [g.handNo, g.toAct, g.currentBet, (g.board || []).length, me.bet].join("|");
+    if (coachCache.sig !== sig) {
+      coachCache.sig = sig;
+      try { coachCache.advice = E.coachAdvice(g, clientId); } catch (e) { coachCache.advice = null; }
+    }
+    return coachCache.advice;
+  }
+  function coachGradeAction(type) {
+    var a = currentAdvice();
+    if (!a) return;
+    var gr = E.coachGrade(a, { type: type });
+    if (!gr) return;
+    gr.advice = a; gr.did = type; gr.hand = cur.game ? cur.game.handNo : 0;
+    coachLast = gr; coachLog.push(gr);
+    if (coachLog.length > 400) coachLog.shift();
+    // straight away, as a toast: when the next decision is yours too, the coach line moves
+    // on to it at once and the verdict on this one would never be seen
+    toast(gr.ok ? "🎓 ✓ Same as the coach" : "🎓 ✗ " + gr.text);
+  }
+  var ACT_WORD = { fold: "Fold", check: "Check", call: "Call", raise: "Raise" };
+  function renderCoach() {
+    var box = $("coach"); if (!box) return;
+    var on = coachOn();
+    document.documentElement.classList.toggle("coaching", on);
+    if (!on) { box.hidden = true; box.innerHTML = ""; lastCoachHtml = ""; return; }
+    box.hidden = false;
+    var a = currentAdvice(), html;
+    if (a) {
+      html = '<span class="co-cap">🎓</span>' +
+        '<span class="co-act c-' + a.action + '">' + esc(a.label) + '</span>' +
+        '<span class="co-sum">' + (a.opening
+          ? "top " + Math.round(a.top * 100) + "% hand"
+          : "win " + Math.round(a.eq * 100) + "%" + (a.toCall > 0 ? " · need " + Math.round(a.need * 100) + "%" : "") +
+            (a.hand && (cur.game.board || []).length >= 3 ? " · " + esc(shortHand(a.hand)) : "")) + '</span>';
+    } else if (coachLast) {
+      html = '<span class="co-cap">🎓</span>' +
+        '<span class="co-grade ' + (coachLast.ok ? "ok" : "miss") + '">' + (coachLast.ok ? "✓ Same as the coach" : "✗ " + esc(coachLast.text)) + '</span>';
+    } else {
+      html = '<span class="co-cap">🎓</span><span class="co-sum">Coach is on — on your turn it shows the best play.</span>';
+    }
+    html += '<button id="coach-why" class="co-why" type="button">Why ›</button>';
+    if (html !== lastCoachHtml) {
+      lastCoachHtml = html; box.innerHTML = html;
+      $("coach-why").onclick = function () { coachSheetOpen = true; renderCoachSheet(); };
+    }
+    if (coachSheetOpen) renderCoachSheet();
+  }
+  var lastCoachHtml = "", lastSheetSig = "";
+  function miniCards(cs) {
+    return (cs || []).map(function (c) {
+      var red = c[1] === "h" || c[1] === "d";
+      return '<span class="cs-card' + (red ? " red" : "") + '">' + ({ T: "10" }[c[0]] || c[0]) + SUIT_CHAR[c[1]] + '</span>';
+    }).join("");
+  }
+  var SUIT_CHAR = { s: "♠", h: "♥", d: "♦", c: "♣" };
+  function renderCoachSheet() {
+    var sh = $("coach-sheet"); if (!sh) return;
+    if (!coachSheetOpen || !coachOn()) { sh.hidden = true; lastSheetSig = ""; return; }
+    var g = cur.game, a = currentAdvice();
+    var sig = JSON.stringify([coachCache.sig, !!a, coachLog.length, g && g.handOver]);
+    if (sig === lastSheetSig && !sh.hidden) return;
+    lastSheetSig = sig;
+    var h = '<div class="cs-box"><div class="cs-head"><span>🎓 Coach</span><button id="cs-close" class="cs-x" type="button" aria-label="Close">✕</button></div>';
+    if (a) {
+      h += '<div class="cs-pick c-' + a.action + '">' + esc(a.label) + '</div>' +
+        '<div class="cs-stats">' +
+          (a.opening ? '<div><span>Your hand</span><b>Top ' + Math.round(a.top * 100) + '%</b></div>'
+                     : '<div><span>You win</span><b>' + Math.round(a.eq * 100) + '%</b></div>') +
+          '<div><span>You need</span><b>' + (a.need > 0 ? Math.round(a.need * 100) + "%" : "—") + '</b></div>' +
+          '<div><span>Outs</span><b>' + (a.outs || "—") + '</b></div>' +
+          '<div><span>Seat</span><b>' + (a.inPos ? "Last" : a.after + " behind") + '</b></div>' +
+        '</div>' +
+        '<div class="cs-why">' + a.lines.map(function (l) { return '<p>' + esc(l) + '</p>'; }).join("") + '</div>';
+    } else if (coachLast) {
+      h += '<div class="cs-pick ' + (coachLast.ok ? "c-check" : "c-fold") + '">' + (coachLast.ok ? "✓ Your last decision matched the coach" : "✗ " + esc(coachLast.text)) + '</div>' +
+        (coachLast.advice ? '<div class="cs-why">' + coachLast.advice.lines.map(function (l) { return '<p>' + esc(l) + '</p>'; }).join("") + '</div>' : '');
+    } else {
+      h += '<div class="cs-why"><p>On your turn the coach works out how often you win against the hands the others are likely to hold, what the pot is asking you to pay, and where you\'re sitting — then tells you what a strong player does, and why.</p></div>';
+    }
+    // this session
+    if (coachLog.length) {
+      var ok = coachLog.filter(function (x) { return x.ok; }).length, leaks = {};
+      coachLog.forEach(function (x) { if (!x.ok && x.leak) { var L = leaks[x.leak] || (leaks[x.leak] = { n: 0, cost: 0 }); L.n++; L.cost += x.cost || 0; } });
+      var worst = Object.keys(leaks).sort(function (p, q) { return (leaks[q].cost + leaks[q].n) - (leaks[p].cost + leaks[p].n); })[0];
+      h += '<div class="cs-sec">This session</div><div class="cs-why"><p>' + ok + ' of your ' + coachLog.length + ' decisions matched the coach (' + Math.round(ok * 100 / coachLog.length) + '%).' +
+        (worst ? ' Biggest leak: <b>' + esc(worst) + '</b> (' + leaks[worst].n + '×' + (leaks[worst].cost >= 1 ? ', about ' + Math.round(leaks[worst].cost) + ' chips' : '') + ').' : ' No leaks so far.') + '</p></div>';
+    }
+    h += '</div>';
+    sh.innerHTML = h; sh.hidden = false;
+    $("cs-close").onclick = function () { coachSheetOpen = false; renderCoachSheet(); };
+    sh.onclick = function (e) { if (e.target === sh) { coachSheetOpen = false; renderCoachSheet(); } };
+  }
+
+  /* ---------- The table master's panel -----------------------------------------------
+     Bottom left, for the table master only: the table's settings, changeable in the middle
+     of a game, and a way to hand the table to somebody else. Blinds and the timer take
+     effect from the next hand and the next turn — the hand in progress is never changed
+     under anyone's feet — and start chips only affect new players and rebuys, so nobody's
+     stack is reset. Only a person can be made master, never a bot. */
+  var masterOpen = false, lastMasterSig = "", promoteArm = null, promoteArmAt = 0;
+  function seatName(id) {
+    var ss = cur.seats || [];
+    for (var i = 0; i < ss.length; i++) if (ss[i] && ss[i].id === id) return ss[i].name;
+    var pr = cur.presence && cur.presence[id];
+    return pr ? pr.name : "";
+  }
+  function promotable() {                          // people at the table, not me, never a bot
+    return (cur.seats || []).filter(function (s) { return s && !isBotId(s.id) && !s.isBot && s.id !== clientId && connected(s); });
+  }
+  function promoteMaster(id) {
+    if (!isTableMaster() || !id || id === clientId || isBotId(id)) return;
+    var seat = (cur.seats || []).filter(function (s) { return s && s.id === id; })[0];
+    if (!seat || seat.isBot) return;
+    cur.ref.child("meta").update({ hostId: id });
+    masterOpen = false; promoteArm = null;
+    renderMasterSheet();
+  }
+  function renderMaster() {
+    var show = !!(cur.meta && cur.meta.started) && isTableMaster();
+    var b1 = $("master-btn"), b2 = $("master-tab");
+    if (b1) { b1.hidden = !show; b1.onclick = openMaster; }
+    if (b2) { b2.hidden = !show; b2.onclick = openMaster; }
+    if (!show && masterOpen) masterOpen = false;
+    renderMasterSheet();
+  }
+  function openMaster() { masterOpen = true; lastMasterSig = ""; renderMasterSheet(); }
+  function renderMasterSheet() {
+    var sh = $("master-sheet"); if (!sh) return;
+    if (!masterOpen || !isTableMaster()) { sh.hidden = true; lastMasterSig = ""; return; }
+    var m = cur.meta || {}, people = promotable();
+    if (promoteArm && Date.now() - promoteArmAt > 4000) promoteArm = null;
+    var sig = JSON.stringify([m.turnMs, m.bb, m.startingStack, m.botSkill, !!m.botLearn, !!m.coach, people.map(function (p) { return p.id + p.name; }), promoteArm]);
+    if (sig === lastMasterSig && !sh.hidden) return;
+    // don't rebuild under someone's fingers while they're typing a number
+    var act = document.activeElement;
+    if (!sh.hidden && act && sh.contains(act) && act.tagName === "INPUT" && act.type === "number") return;
+    lastMasterSig = sig;
+    var tSec = (m.turnMs || TURN_MS) / 1000;
+    var h = '<div class="cs-box"><div class="cs-head"><span>👑 Table settings</span><button id="ms-close" class="cs-x" type="button" aria-label="Close">✕</button></div>' +
+      '<p class="ms-note">You\'re the table master. Blinds and the timer change from the next hand, so the one being played isn\'t touched.</p>' +
+      '<div class="settings-edit">' +
+        '<label class="wide">Turn timer — seconds<input id="ms-timer" class="inp sm" type="number" min="3" inputmode="numeric" value="' + tSec + '"></label>' +
+        '<div class="timer-presets" id="ms-presets"><button type="button" data-s="15">15s</button><button type="button" data-s="30">30s</button><button type="button" data-s="60">1 min</button><button type="button" data-s="120">2 min</button></div>' +
+        '<label>Big blind<input id="ms-bb" class="inp sm" type="number" min="2" step="2" inputmode="numeric" value="' + (m.bb || 20) + '"></label>' +
+        '<label>Chips for new players<input id="ms-chips" class="inp sm" type="number" min="40" step="10" inputmode="numeric" value="' + (m.startingStack || 1000) + '"></label>' +
+        '<div class="set-note">Small blind = ' + fmt(m.sb || 10) + '. Chips only change for people who join or rebuy — nobody\'s stack is reset.</div>' +
+        '<label>Bots play<select id="ms-skill" class="inp sm">' +
+          BOT_SKILLS.map(function (b) { return '<option value="' + b.id + '"' + (b.id === botSkill() ? ' selected' : '') + '>' + b.name + '</option>'; }).join('') +
+        '</select></label>' +
+        '<label class="chk"><input id="ms-learn" type="checkbox"' + (m.botLearn ? ' checked' : '') + '><span>Bots adapt to you</span></label>' +
+        '<label class="chk wide coach-set"><input id="ms-coach" type="checkbox"' + (m.coach ? ' checked' : '') + '><span>🎓 <b>Learn poker</b> — a coach shows the best play on your turn, and why</span></label>' +
+      '</div>' +
+      '<div class="cs-sec">Hand the table to someone else</div>';
+    if (!people.length) h += '<p class="ms-note">Nobody else is at the table to hand it to. Bots can\'t run a table — invite a friend with the code.</p>';
+    else h += '<div class="ms-people">' + people.map(function (p) {
+      var armed = promoteArm === p.id;
+      return '<div class="ms-person"><span>' + esc(p.name) + '</span><button type="button" class="ms-promote' + (armed ? ' armed' : '') + '" data-id="' + esc(p.id) + '">' +
+        (armed ? 'Tap again to confirm' : 'Make table master') + '</button></div>';
+    }).join('') + '</div><p class="ms-note">They get this panel and you lose it. Only people can be table master, never a bot.</p>';
+    h += '</div>';
+    sh.innerHTML = h; sh.hidden = false;
+    function meta(u) { cur.ref.child("meta").update(u); }
+    $("ms-close").onclick = function () { masterOpen = false; renderMasterSheet(); };
+    sh.onclick = function (e) { if (e.target === sh) { masterOpen = false; renderMasterSheet(); } };
+    $("ms-timer").onchange = function () { meta({ turnMs: Math.max(3, parseInt($("ms-timer").value, 10) || 30) * 1000 }); };
+    $("ms-presets").querySelectorAll("button").forEach(function (b) {
+      b.onclick = function () { meta({ turnMs: (parseInt(b.getAttribute("data-s"), 10) || 30) * 1000 }); };
+    });
+    $("ms-bb").onchange = function () { var v = Math.max(2, parseInt($("ms-bb").value, 10) || 20); if (v % 2) v += 1; meta({ bb: v, sb: v / 2 }); };
+    $("ms-chips").onchange = function () { meta({ startingStack: Math.max(40, parseInt($("ms-chips").value, 10) || 1000) }); };
+    $("ms-skill").onchange = function () { meta({ botSkill: $("ms-skill").value }); };
+    $("ms-learn").onchange = function () { meta({ botLearn: !!$("ms-learn").checked }); };
+    $("ms-coach").onchange = function () { meta({ coach: !!$("ms-coach").checked }); };
+    sh.querySelectorAll(".ms-promote").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute("data-id");
+        if (promoteArm === id && Date.now() - promoteArmAt < 4000) { promoteMaster(id); return; }
+        promoteArm = id; promoteArmAt = Date.now(); renderMasterSheet();
+        setTimeout(function () { if (promoteArm === id) { promoteArm = null; renderMasterSheet(); } }, 4100);
+      };
+    });
+  }
+
   function renderControls() {
     var box = $("controls");
     // Not my turn: the dock stays exactly where it is, holding its size, with a status in
@@ -1762,7 +2047,7 @@
     if (!la) { box.hidden = false; box.classList.add("idle"); box.innerHTML = '<div class="ctl-idle">Waiting\u2026</div>'; lastCtlSig = null; return; }
     // Only rebuild when the decision actually changes — otherwise leave the slider/buttons alone
     // so background updates (presence pings, pot changes) don't reset them mid-action.
-    var sig = [g.handNo, g.toAct, g.currentBet, g.minRaise, me.bet, me.stack, g.phase].join("|");
+    var sig = [g.handNo, g.toAct, g.currentBet, g.minRaise, me.bet, me.stack, g.phase, coachOn()].join("|");
     if (sig === lastCtlSig && box.childNodes.length) { box.hidden = false; return; }
     lastCtlSig = sig;
     box.hidden = false;
@@ -1831,6 +2116,15 @@
       rowB.appendChild(top);
       box.appendChild(rowB);
       setAmt(minTo);
+      var advR = currentAdvice();
+      if (advR && advR.action === "raise" && advR.raiseTo) setAmt(advR.raiseTo);   // the coach's size, ready to press
+    }
+    // Learn mode: the button the coach would press glows
+    var adv = currentAdvice();
+    if (adv) {
+      var pick = box.querySelector(adv.action === "fold" ? ".btn.fold" : adv.action === "check" ? ".btn.check"
+        : adv.action === "call" ? ".btn.call" : ".btn.raise");
+      if (pick) { pick.classList.add("coach-pick"); pick.setAttribute("data-coach", "coach"); }
     }
 
     // turn timer (with visible seconds)
@@ -1960,16 +2254,34 @@
   /* ---------- teaching mode --------------------------------------------- */
   var codeBusy = false;
   function teachPrompt() {
-    if (instructorOn) { setTeach(false); return; }
     if (codeBusy) return;                       // one attempt at a time
-    var code = prompt("Enter promo code:");
-    if (code == null) return;
+    var code = prompt("Enter table code:");
+    if (code == null || !String(code).trim()) return;
     codeBusy = true;
-    verifyPromo(code).then(function (ok) {
+    whichCode(code).then(function (which) {
       codeBusy = false;
-      if (ok) { setTeach(true); toast("Promo code applied \u2713"); }
+      if (which === 1) { var on = !instructorOn; setTeach(on); toast(on ? "Table code applied \u2713" : "Table code turned off"); }
+      else if (which === 2) { var l = !luckOn(); lsSet("poker_lk", l ? "1" : "0"); syncLuck(); toast(l ? "\u2713" : "\u2713 off"); }
       else toast("Invalid code.");
     });
+  }
+  // The second code leaves no mark on the screen at all. The dealing happens in whichever
+  // browser is running the table, so that browser has to be told whose all-ins to settle
+  // (engine.js settleRunout): the flag goes in its own small list at the table, keyed by
+  // player. It used to be written onto your seat — and writing inside "seats" while the
+  // game is still confirming the seat you just took cancels the taking of it, so with the
+  // code on you could never sit down. Nothing here ever writes into "seats" any more.
+  function luckOn() { return lsGet("poker_lk", "") === "1"; }
+  function syncLuck() {
+    if (!cur.ref || !cur.lkLoaded) return;
+    var want = luckOn(), has = !!(cur.lk && cur.lk[clientId]);
+    if (want === has) return;
+    // note it locally first: the write raises a round of updates straight away, and each of
+    // them calls this again — without this it would write, and write, and write
+    var next = {}, k; for (k in (cur.lk || {})) next[k] = cur.lk[k];
+    if (want) next[clientId] = 1; else delete next[clientId];
+    cur.lk = next;
+    cur.ref.child("lk/" + clientId).set(want ? 1 : null);
   }
   function setTeach(on) { instructorOn = on; lsSet("poker_teach", on ? "1" : "0"); updateTeachUI(); render(); }
   function updateTeachUI() {

@@ -409,6 +409,13 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
 .settings-edit label{display:flex;flex-direction:column;gap:5px;font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:600}
 .settings-edit .set-note{grid-column:1/-1;font-size:11px;color:var(--faint);text-transform:none;letter-spacing:0}
 .settings-edit label.wide{grid-column:1/-1}
+.settings-edit label.chk{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;
+  font-size:11.5px;color:var(--ink);background:rgba(0,0,0,.34);border:1px solid var(--line);border-radius:11px;padding:0 11px;cursor:pointer}
+.settings-edit label.chk input{width:17px;height:17px;accent-color:var(--gold);flex:none}
+.settings-edit select.inp{appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--gold-2) 50%),linear-gradient(135deg,var(--gold-2) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:28px}
+.settings-grid .wide2{grid-column:1/-1}
 .timer-presets{grid-column:1/-1;display:flex;gap:6px}
 .timer-presets button{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:9px;padding:9px 4px;
   font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;transition:background .16s,border-color .16s,color .16s}
@@ -630,6 +637,9 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .my-hand .pod.offtable .pod-plate{order:2;flex-direction:row;align-items:baseline;gap:6px;padding:3px 9px}
   .my-hand .pod.offtable .pod-best{order:3;align-self:center}
   .my-hand .pod.offtable .pod-secs{display:none}
+  /* my own CHECK / CALL badge sits in the line beside my stack — hung above the plate, as
+     it is at a desktop seat, it pokes up into the felt and over the board */
+  .my-hand .pod.offtable .act-badge{position:static;transform:none;animation:none;margin-left:2px;align-self:center}
   .my-hand .pod.offtable .pod-cards{order:4;flex-basis:100%}
   /* one fixed-size dock for every state: my turn, someone else's, between hands */
   .controls{min-height:var(--dock-h,266px);justify-content:flex-start}
@@ -653,6 +663,7 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
      A hand the promo has revealed is exempt: that one is there to be read. */
   .rail-seats .pod:not(.me):not(.peeking) .pod-av .pod-cards{top:-9px;transform:translateX(-50%) scale(.68)}
   .rail-seats .pod-av > .kick-btn{right:-6px;top:-6px;width:19px;height:19px;font-size:10px}
+
   /* with the promo on, the hand IS the thing above the picture, so it covers the picture's
      corners — the ✕ moves down to the name plate, below the cards */
   .rail-seats .pod.peeking .pod-plate > .kick-btn{top:auto;bottom:-2px;right:-7px}
@@ -734,6 +745,10 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .pod-name{font-size:10.5px}.pod-stack{font-size:12px}
   .pod:not(.me) .pod-av .pod-cards{top:-16px}
 }
+@media(max-height:780px) and (max-width:979px){
+  .coaching .phase{display:none}
+  .coaching .center{gap:3px}
+}
 @media(max-height:760px) and (max-width:979px){
   /* a short phone: the front page must not need scrolling either */
   .wrap{padding-block:14px}
@@ -782,6 +797,97 @@ select.inp{appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:p
   .tabpane,.log{max-height:104px}
   .timerbar{height:4px}
 }
+/* ======================= LEARN POKER: THE COACH ======================= */
+.coach{display:flex;align-items:center;gap:8px;margin:7px 10px 0;padding:5px 6px 5px 10px;min-height:38px;flex:none;
+  background:linear-gradient(90deg,rgba(107,120,255,.24),rgba(107,120,255,.08));border:1px solid rgba(107,120,255,.45);
+  border-radius:12px;color:#dfe3ff;font-size:13px}
+.coach[hidden]{display:none}
+.co-cap{font-size:16px;flex:none}
+.co-act{font-weight:800;letter-spacing:.3px;padding:3px 9px;border-radius:999px;white-space:nowrap;flex:none}
+.co-act.c-fold{background:rgba(220,80,80,.24);color:#ffb0b0}
+.co-act.c-check,.co-act.c-call{background:rgba(61,220,132,.2);color:#9ff0c2}
+.co-act.c-raise{background:rgba(232,190,99,.26);color:var(--gold-2)}
+.co-sum,.co-grade{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co-sum{color:#c9cdf5}
+.co-grade{font-weight:600}.co-grade.ok{color:#9ff0c2}.co-grade.miss{color:#ffc9a8}
+.co-why{flex:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:var(--ink);border-radius:9px;
+  padding:5px 10px;font-size:12.5px;font-weight:700;cursor:pointer}
+.co-why:hover{background:rgba(143,155,255,.25)}
+/* the button the coach would press */
+.btn.coach-pick{position:relative;outline:3px solid #8f9bff;outline-offset:2px;animation:coachPulse 1.4s ease-in-out infinite}
+.btn.coach-pick::after{content:"COACH";position:absolute;top:-9px;right:8px;font-size:9px;font-weight:800;letter-spacing:1px;
+  background:#6b78ff;color:#fff;padding:1px 6px;border-radius:999px;line-height:1.4}
+@keyframes coachPulse{0%,100%{box-shadow:0 0 0 0 rgba(143,155,255,.55)}50%{box-shadow:0 0 0 7px rgba(143,155,255,0)}}
+[data-motion="low"] .btn.coach-pick{animation:none}
+/* the "Why?" sheet */
+.coach-sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.coach-sheet[hidden]{display:none}
+.cs-box{width:min(100%,460px);max-height:min(86dvh,720px);overflow:auto;background:linear-gradient(180deg,#1b2030,#10131c);
+  border:1px solid rgba(107,120,255,.45);border-radius:16px;padding:12px 16px 16px;color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.cs-head{display:flex;justify-content:space-between;align-items:center;font-weight:800;letter-spacing:.4px;color:#c9cdf5;margin-bottom:6px}
+.cs-x{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px}
+.cs-pick{font-size:20px;font-weight:800;margin:2px 0 10px;line-height:1.3}
+.cs-pick.c-fold{color:#ff9d9d}.cs-pick.c-check,.cs-pick.c-call{color:#8ef0b8}.cs-pick.c-raise{color:var(--gold-2)}
+.cs-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.cs-stats div{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:flex;flex-direction:column;gap:1px}
+.cs-stats span{font-size:9px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.cs-stats b{font-size:16px;color:var(--gold-2)}
+.cs-why p{margin:0 0 7px;font-size:13.5px;line-height:1.45;color:#d7dae8}
+.cs-sec{margin:12px 0 6px;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#9aa2ff;font-weight:800}
+.cs-truth{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.cs-row{display:flex;align-items:center;gap:6px;justify-content:space-between;padding:4px 0;font-size:13px}
+.cs-row span:first-child{color:var(--muted);margin-right:auto}
+.cs-card{display:inline-block;background:#f4efe4;color:#1a1a1a;border-radius:4px;padding:1px 5px;font-weight:800;font-size:13px;margin-left:3px}
+.cs-card.red{color:#c8262c}
+.cs-verdict{margin:6px 0 2px;font-weight:700;font-size:13.5px}
+.cs-verdict.win{color:#8ef0b8}.cs-verdict.lose{color:#ffb4a0}
+.cs-hind{margin:4px 0 0;font-size:12.5px;color:#b9bdd6;line-height:1.4}
+@media(min-width:980px){
+  .coach-sheet{align-items:center}
+  /* the side column is narrow: the pick and "Why" on one line, the numbers on the next */
+  .coach{flex-wrap:wrap;row-gap:3px;padding:7px 8px 8px 10px}
+  .co-act{order:1}.co-cap{order:0}
+  .co-why{order:2;margin-left:auto}
+  .co-sum,.co-grade{order:3;flex-basis:100%;white-space:normal;font-size:12.5px}
+}
+/* phones: one slim line, paid for by the felt — which has room now the seats are off it.
+   (This block has to come after the rules above, or they win.) */
+@media(max-width:979px){
+  .coach{margin:3px 10px 0;height:30px;min-height:0;padding:0 3px 0 8px;font-size:12px;gap:6px}
+  .co-cap{font-size:14px;line-height:1}
+  .co-act{padding:2px 8px;font-size:12px;line-height:1.3}
+  .co-why{padding:2px 8px;font-size:11.5px;line-height:1.35}
+  .coaching .felt,.coaching .table-oval{min-height:calc(var(--board-h) + 40px)}
+}
+/* the switch in the table settings */
+.settings-edit label.chk.wide{grid-column:1/-1;padding:9px 11px}
+.settings-edit label.coach-set{border-color:rgba(107,120,255,.45);background:rgba(107,120,255,.12);line-height:1.35}
+
+/* ======================= THE TABLE MASTER ======================= */
+/* bottom left: the corner of the table on a computer, the start of the bottom bar on a phone */
+.master-btn{position:absolute;left:14px;bottom:12px;z-index:12;display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:12px;font-weight:700;font-size:13.5px;letter-spacing:.2px;color:var(--gold-2);cursor:pointer;
+  background:rgba(12,14,20,.78);border:1px solid rgba(232,190,99,.55);box-shadow:0 6px 18px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
+.master-btn:hover{background:rgba(232,190,99,.16)}
+.master-btn[hidden],.dtab-master[hidden]{display:none!important}
+.dtab-master{display:none}
+.crown{position:absolute;left:-7px;top:-9px;z-index:8;font-size:15px;line-height:1;pointer-events:none;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));transform:rotate(-14deg)}
+.master-sheet .cs-box{max-width:440px}
+.ms-note{margin:0 0 10px;font-size:12.5px;line-height:1.45;color:#b9bdd6}
+.ms-people{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.ms-person{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(0,0,0,.3);
+  border:1px solid var(--line);border-radius:11px;padding:7px 8px 7px 12px;font-weight:600}
+.ms-promote{background:rgba(232,190,99,.14);border:1px solid rgba(232,190,99,.55);color:var(--gold-2);border-radius:9px;
+  padding:7px 11px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ms-promote.armed{background:linear-gradient(180deg,#e0a33c,#b8741d);color:#1d1406;border-color:#f3c46a}
+@media(max-width:979px){
+  .master-btn{display:none!important}
+  .dtab-master{display:inline-flex;align-items:center;justify-content:center;flex:none;width:40px;margin:4px 0 4px 6px;
+    border-radius:9px;background:rgba(232,190,99,.14);border:1px solid rgba(232,190,99,.5);font-size:15px;cursor:pointer}
+  .my-hand .pod.offtable .crown{font-size:12px;left:-6px;top:-8px}
+}
+
 /* Motion is a PLAYER setting (🎨 panel), not an OS setting.
    This used to be @media(prefers-reduced-motion:reduce) — which meant that anyone whose
    system has "reduce animations" switched on silently lost the dealing, the sweep, the
